@@ -58,3 +58,19 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 
 /* Hide Next.js error overlay portal */
 nextjs-portal { display: none !important; }
+
+.playback-status { min-height: 15px; margin-top: 10px; color: var(--muted); font-size: 10px; }
+.playback-status:has(+ .player-progress) { color: var(--accent); }
+.progress-line { position: relative; overflow: visible; }
+.progress-line:before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--progress, 0%); border-radius: inherit; background: var(--accent); pointer-events: none; }
+.progress-line input { position: absolute; z-index: 2; inset: -7px 0; width: 100%; height: 18px; margin: 0; opacity: 0; cursor: pointer; }
+.progress-line input::-webkit-slider-thumb { cursor: pointer; }
+.player-volume { display: flex; align-items: center; gap: 9px; width: 130px; margin-top: 24px; color: var(--muted); }
+.player-volume input { width: 100%; accent-color: var(--accent); cursor: pointer; }
+.queue-track { color: inherit; background: transparent; border: 0; border-bottom: 1px solid var(--line); text-align: left; }
+.queue-track:hover { background: rgba(255,255,255,.035); }
+.queue-add { grid-column: span 2; justify-self: start; color: var(--muted); background: transparent; }
+.queue-add:hover { color: var(--accent); }
+.spinner { width: 13px; height: 13px; display: block; border: 2px solid rgba(18,22,15,.35); border-top-color: #12160f; border-radius: 50%; animation: spin .7s linear infinite; }
+.spinner-dark { width: 20px; height: 20px; border-color: rgba(17,22,13,.3); border-top-color: #11160d; }
+@keyframes spin { to { transform: rotate(360deg); } }

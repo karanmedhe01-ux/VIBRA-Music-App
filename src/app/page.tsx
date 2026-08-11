@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Album,
   ArrowLeft,
@@ -39,6 +39,7 @@ type Song = {
   artist: string;
   cover: string;
   duration: string;
+  audioUrl: string;
 };
 
 const covers = {
@@ -61,12 +62,13 @@ const covers = {
 };
 
 const songs: Song[] = [
-  { title: "Midnight City", artist: "M83", cover: covers.midnight, duration: "4:03" },
-  { title: "The Color Violet", artist: "Tory Lanez", cover: covers.rose, duration: "3:46" },
-  { title: "Innerbloom", artist: "RÜFÜS DU SOL", cover: covers.gold, duration: "9:35" },
-  { title: "Sweet Disposition", artist: "The Temper Trap", cover: covers.blue, duration: "3:54" },
-  { title: "Sunset Lover", artist: "Petit Biscuit", cover: covers.ocean, duration: "3:58" },
-  { title: "After Dark", artist: "Mr.Kitty", cover: covers.face, duration: "4:17" },
+  // SoundHelix demo tracks are used here so the player works without an API key.
+  { title: "Midnight City", artist: "M83", cover: covers.midnight, duration: "4:03", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+  { title: "The Color Violet", artist: "Tory Lanez", cover: covers.rose, duration: "3:46", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+  { title: "Innerbloom", artist: "RÜFÜS DU SOL", cover: covers.gold, duration: "9:35", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+  { title: "Sweet Disposition", artist: "The Temper Trap", cover: covers.blue, duration: "3:54", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
+  { title: "Sunset Lover", artist: "Petit Biscuit", cover: covers.ocean, duration: "3:58", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" },
+  { title: "After Dark", artist: "Mr.Kitty", cover: covers.face, duration: "4:17", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3" },
 ];
 
 const navItems = [
@@ -97,23 +99,141 @@ function PlayButton({ onClick, small = false }: { onClick?: () => void; small?: 
 }
 
 export default function Home() {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [activeNav, setActiveNav] = useState("Home");
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false);
   const [liked, setLiked] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedSong, setSelectedSong] = useState(songs[0]);
+  const [queue, setQueue] = useState<Song[]>(songs);
+  const [queueIndex, setQueueIndex] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [durationSeconds, setDurationSeconds] = useState(0);
+  const [volume, setVolume] = useState(0.8);
+  const [isLoading, setIsLoading] = useState(false);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const audio = new Audio();
+    audio.preload = "metadata";
+    audio.volume = volume;
+    audioRef.current = audio;
+
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => setDurationSeconds(Number.isFinite(audio.duration) ? audio.duration : 0);
+    const handleWaiting = () => setIsLoading(true);
+    const handlePlaying = () => {
+      setIsLoading(false);
+      setPlaybackError(null);
+      setPlaying(true);
+    };
+    const handlePause = () => setPlaying(false);
+    const handleEnded = () => nextSongRef.current();
+    const handleError = () => {
+      setIsLoading(false);
+      setPlaying(false);
+      setPlaybackError("Audio could not be loaded. Try another track.");
+    };
+
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("waiting", handleWaiting);
+    audio.addEventListener("playing", handlePlaying);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
+
+    return () => {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("waiting", handleWaiting);
+      audio.removeEventListener("playing", handlePlaying);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
+      audioRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
+
+  const startSong = useCallback((song: Song, autoplay = true) => {
+    const audio = audioRef.current;
+    const nextIndex = songs.findIndex((item) => item.audioUrl === song.audioUrl);
+    setSelectedSong(song);
+    setQueueIndex(nextIndex >= 0 ? nextIndex : 0);
+    setCurrentTime(0);
+    setDurationSeconds(0);
+    setPlaybackError(null);
+    if (!audio) return;
+    audio.pause();
+    audio.src = song.audioUrl;
+    audio.load();
+    if (autoplay) {
+      setIsLoading(true);
+      audio.play().catch(() => {
+        setIsLoading(false);
+        setPlaying(false);
+        setPlaybackError("Tap play to start this demo track.");
+      });
+    } else {
+      setIsLoading(false);
+      setPlaying(false);
+    }
+  }, []);
+
+  const togglePlayback = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || !audio.src) {
+      startSong(selectedSong);
+      return;
+    }
+    if (audio.paused) {
+      setIsLoading(true);
+      audio.play().catch(() => {
+        setIsLoading(false);
+        setPlaybackError("Tap play to start this demo track.");
+      });
+    } else {
+      audio.pause();
+    }
+  }, [selectedSong, startSong]);
+
+  const playSong = useCallback((song: Song) => startSong(song), [startSong]);
+  const nextSong = useCallback(() => {
+    const nextIndex = (queueIndex + 1) % queue.length;
+    startSong(queue[nextIndex]);
+  }, [queue, queueIndex, startSong]);
+  const previousSong = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio && audio.currentTime > 3) {
+      audio.currentTime = 0;
+      return;
+    }
+    const previousIndex = (queueIndex - 1 + queue.length) % queue.length;
+    startSong(queue[previousIndex]);
+  }, [queue, queueIndex, startSong]);
+  const nextSongRef = useRef(nextSong);
+  nextSongRef.current = nextSong;
+
+  const seek = (nextTime: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = nextTime;
+      setCurrentTime(nextTime);
+    }
+  };
 
   const filteredSongs = useMemo(
     () => songs.filter((song) => `${song.title} ${song.artist}`.toLowerCase().includes(search.toLowerCase())),
     [search],
   );
-
-  const playSong = (song: Song) => {
-    setSelectedSong(song);
-    setPlaying(true);
-  };
 
   const navigate = (label: string) => {
     setActiveNav(label);
@@ -172,8 +292,8 @@ export default function Home() {
           <HomeView playing={playing} setPlaying={setPlaying} liked={liked} setLiked={setLiked} playSong={playSong} setShowPlayer={setShowPlayer} />
         )}
 
-        {!showPlayer && <MiniPlayer song={selectedSong} playing={playing} liked={liked} setLiked={setLiked} setPlaying={setPlaying} setShowPlayer={setShowPlayer} />}
-        {showPlayer && <FullPlayer song={selectedSong} playing={playing} setPlaying={setPlaying} liked={liked} setLiked={setLiked} close={() => setShowPlayer(false)} />}
+        {!showPlayer && <MiniPlayer song={selectedSong} playing={playing} liked={liked} setLiked={setLiked} togglePlayback={togglePlayback} setShowPlayer={setShowPlayer} currentTime={currentTime} durationSeconds={durationSeconds} isLoading={isLoading} playbackError={playbackError} nextSong={nextSong} />}
+        {showPlayer && <FullPlayer song={selectedSong} playing={playing} togglePlayback={togglePlayback} liked={liked} setLiked={setLiked} close={() => setShowPlayer(false)} currentTime={currentTime} durationSeconds={durationSeconds} seek={seek} previousSong={previousSong} nextSong={nextSong} volume={volume} setVolume={setVolume} isLoading={isLoading} playbackError={playbackError} queue={queue} setQueue={setQueue} playSong={playSong} />}
       </main>
       {menuOpen && <div className="mobile-nav-popover"><button onClick={() => { navigate("Home"); setMenuOpen(false); }}>Home</button><button onClick={() => { navigate("Search"); setMenuOpen(false); }}>Search</button><button onClick={() => { navigate("Your Library"); setMenuOpen(false); }}>Library</button><button onClick={() => { navigate("Settings"); setMenuOpen(false); }}>Settings</button></div>}
     </div>
@@ -214,12 +334,15 @@ function RecentRow({ song, onPlay }: { song: Song; onPlay: () => void }) {
 function PlaylistItem({ title, subtitle, cover }: { title: string; subtitle: string; cover: string }) { return <div className="playlist-item"><Artwork src={cover} className="playlist-art" /><div><strong>{title}</strong><span>{subtitle}</span></div><MoreHorizontal size={18} /></div>; }
 function Artist({ name, image }: { name: string; image: string }) { return <div className="artist"><Artwork src={image} className="artist-art" /><strong>{name}</strong><span>Artist</span></div>; }
 
-function MiniPlayer({ song, playing, liked, setLiked, setPlaying, setShowPlayer }: { song: Song; playing: boolean; liked: boolean; setLiked: (v: boolean) => void; setPlaying: (v: boolean) => void; setShowPlayer: (v: boolean) => void }) {
-  return <div className="mini-player"><div className="mini-song" onClick={() => setShowPlayer(true)}><Artwork src={song.cover} className="mini-art" /><div><strong>{song.title}</strong><span>{song.artist}</span></div></div><div className="mini-controls"><button onClick={() => setPlaying(!playing)} className="mini-main">{playing ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}</button><button><SkipForward size={17} /></button></div><div className="mini-progress"><span /><i /></div><button className={`mini-heart ${liked ? "liked" : ""}`} onClick={() => setLiked(!liked)}><Heart size={18} fill={liked ? "currentColor" : "none"} /></button><button className="queue-button" onClick={() => setShowPlayer(true)}><ListMusic size={18} /></button></div>;
+function MiniPlayer({ song, playing, liked, setLiked, togglePlayback, setShowPlayer, currentTime, durationSeconds, isLoading, playbackError, nextSong }: { song: Song; playing: boolean; liked: boolean; setLiked: (v: boolean) => void; togglePlayback: () => void; setShowPlayer: (v: boolean) => void; currentTime: number; durationSeconds: number; isLoading: boolean; playbackError: string | null; nextSong: () => void }) {
+  const progress = durationSeconds ? `${Math.min(100, (currentTime / durationSeconds) * 100)}%` : "0%";
+  return <div className="mini-player"><div className="mini-song" onClick={() => setShowPlayer(true)}><Artwork src={song.cover} className="mini-art" /><div><strong>{song.title}</strong><span>{song.artist}</span></div></div><div className="mini-controls"><button onClick={togglePlayback} className="mini-main" aria-label={playing ? "Pause" : "Play"}>{isLoading ? <span className="spinner" /> : playing ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}</button><button onClick={nextSong} aria-label="Next track"><SkipForward size={17} /></button></div><div className={`mini-progress ${playbackError ? "has-error" : ""}`} title={playbackError ?? (playing ? "Playing" : "Paused")}><span style={{ width: progress }} /><i style={{ left: progress }} /></div><button className={`mini-heart ${liked ? "liked" : ""}`} onClick={() => setLiked(!liked)}><Heart size={18} fill={liked ? "currentColor" : "none"} /></button><button className="queue-button" onClick={() => setShowPlayer(true)}><ListMusic size={18} /></button></div>;
 }
 
-function FullPlayer({ song, playing, setPlaying, liked, setLiked, close }: { song: Song; playing: boolean; setPlaying: (v: boolean) => void; liked: boolean; setLiked: (v: boolean) => void; close: () => void }) {
-  return <div className="full-player"><div className="player-top"><button onClick={close} className="back-button"><ArrowLeft size={20} /><span>Back to browsing</span></button><span>NOW PLAYING</span><button className="icon-button"><MoreHorizontal size={20} /></button></div><div className="player-body"><div className="player-art-wrap"><Artwork src={song.cover} className="player-art" /><div className="player-glow" /></div><div className="player-details"><div className="player-label">PLAYING FROM <span>Evening Mix</span></div><h1>{song.title}</h1><h3>{song.artist}</h3><div className="player-progress"><div className="progress-line"><span /></div><div><span>1:24</span><span>{song.duration}</span></div></div><div className="player-controls"><button><Shuffle size={20} /></button><button><SkipBack size={25} fill="currentColor" /></button><button className="player-play" onClick={() => setPlaying(!playing)}>{playing ? <Pause size={25} fill="currentColor" /> : <Play size={25} fill="currentColor" />}</button><button><SkipForward size={25} fill="currentColor" /></button><button><Repeat2 size={20} /></button></div><div className="player-actions"><button className={liked ? "liked" : ""} onClick={() => setLiked(!liked)}><Heart size={19} fill={liked ? "currentColor" : "none"} /> Favorite</button><button><Plus size={19} /> Add to playlist</button><button><Share2 size={18} /> Share</button><button><Mic2 size={18} /> Lyrics</button><button><Clock3 size={18} /> Sleep timer</button></div></div></div><div className="queue-panel"><div><span className="overline">UP NEXT</span><h3>Queue <span>12 songs</span></h3></div><button>View queue <ChevronRight size={15} /></button><div className="queue-track"><Artwork src={covers.rose} className="queue-art" /><div><strong>The Color Violet</strong><span>Tory Lanez</span></div><span>3:46</span></div><div className="queue-track"><Artwork src={covers.gold} className="queue-art" /><div><strong>Innerbloom</strong><span>RÜFÜS DU SOL</span></div><span>9:35</span></div></div></div>;
+function FullPlayer({ song, playing, togglePlayback, liked, setLiked, close, currentTime, durationSeconds, seek, previousSong, nextSong, volume, setVolume, isLoading, playbackError, queue, setQueue, playSong }: { song: Song; playing: boolean; togglePlayback: () => void; liked: boolean; setLiked: (v: boolean) => void; close: () => void; currentTime: number; durationSeconds: number; seek: (value: number) => void; previousSong: () => void; nextSong: () => void; volume: number; setVolume: (v: number) => void; isLoading: boolean; playbackError: string | null; queue: Song[]; setQueue: (songs: Song[]) => void; playSong: (song: Song) => void }) {
+  const progress = durationSeconds ? Math.min(100, (currentTime / durationSeconds) * 100) : 0;
+  const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+  return <div className="full-player"><div className="player-top"><button onClick={close} className="back-button"><ArrowLeft size={20} /><span>Back to browsing</span></button><span>NOW PLAYING</span><button className="icon-button"><MoreHorizontal size={20} /></button></div><div className="player-body"><div className="player-art-wrap"><Artwork src={song.cover} className="player-art" /><div className="player-glow" /></div><div className="player-details"><div className="player-label">PLAYING FROM <span>Evening Mix</span></div><h1>{song.title}</h1><h3>{song.artist}</h3><div className="playback-status">{isLoading ? "Loading demo audio..." : playbackError ?? (playing ? "Now playing" : "Paused")}</div><div className="player-progress"><div className="progress-line" style={{ "--progress": `${progress}%` } as React.CSSProperties}><input type="range" min="0" max={durationSeconds || 1} step="0.1" value={Math.min(currentTime, durationSeconds || 1)} onChange={(event) => seek(Number(event.target.value))} aria-label="Seek through song" /></div><div><span>{formatTime(currentTime)}</span><span>{durationSeconds ? formatTime(durationSeconds) : song.duration}</span></div></div><div className="player-controls"><button aria-label="Shuffle"><Shuffle size={20} /></button><button onClick={previousSong} aria-label="Previous track"><SkipBack size={25} fill="currentColor" /></button><button className="player-play" onClick={togglePlayback} aria-label={playing ? "Pause" : "Play"}>{isLoading ? <span className="spinner spinner-dark" /> : playing ? <Pause size={25} fill="currentColor" /> : <Play size={25} fill="currentColor" />}</button><button onClick={nextSong} aria-label="Next track"><SkipForward size={25} fill="currentColor" /></button><button aria-label="Repeat"><Repeat2 size={20} /></button></div><div className="player-actions"><button className={liked ? "liked" : ""} onClick={() => setLiked(!liked)}><Heart size={19} fill={liked ? "currentColor" : "none"} /> Favorite</button><button><Plus size={19} /> Add to playlist</button><button><Share2 size={18} /> Share</button><button><Mic2 size={18} /> Lyrics</button><button><Clock3 size={18} /> Sleep timer</button></div><label className="player-volume"><Volume2 size={17} /><input type="range" min="0" max="1" step="0.01" value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label="Volume" /></label></div></div><div className="queue-panel"><div><span className="overline">UP NEXT</span><h3>Queue <span>{queue.length} songs</span></h3></div><button>View queue <ChevronRight size={15} /></button>{queue.filter((item) => item.audioUrl !== song.audioUrl).slice(0, 4).map((item) => <button className="queue-track" key={item.audioUrl} onClick={() => playSong(item)}><Artwork src={item.cover} className="queue-art" /><div><strong>{item.title}</strong><span>{item.artist}</span></div><span>{item.duration}</span></button>)}<button className="queue-add" onClick={() => setQueue([...queue, songs[(queue.length + 1) % songs.length]])}><Plus size={15} /> Add demo track to queue</button></div></div>;
 }
 
 function SearchView({ search, setSearch, songs, playSong }: { search: string; setSearch: (v: string) => void; songs: Song[]; playSong: (song: Song) => void }) {
