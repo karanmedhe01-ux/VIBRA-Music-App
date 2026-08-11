@@ -116,30 +116,33 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const audio = new Audio();
+    const audio = audioRef.current;
+    if (!audio) return;
     audio.preload = "metadata";
     audio.volume = volume;
-    audioRef.current = audio;
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleLoadedMetadata = () => setDurationSeconds(Number.isFinite(audio.duration) ? audio.duration : 0);
     const handleWaiting = () => setIsLoading(true);
+    const handlePlay = () => setPlaying(true);
     const handlePlaying = () => {
       setIsLoading(false);
       setPlaybackError(null);
-      setPlaying(true);
     };
     const handlePause = () => setPlaying(false);
     const handleEnded = () => nextSongRef.current();
     const handleError = () => {
       setIsLoading(false);
       setPlaying(false);
-      setPlaybackError("Audio could not be loaded. Try another track.");
+      const mediaError = audio.error;
+      const errorCode = mediaError?.code ? ` (code ${mediaError.code})` : "";
+      setPlaybackError(`Audio could not be loaded${errorCode}. Check your connection or try another track.`);
     };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("waiting", handleWaiting);
+    audio.addEventListener("play", handlePlay);
     audio.addEventListener("playing", handlePlaying);
     audio.addEventListener("pause", handlePause);
     audio.addEventListener("ended", handleEnded);
@@ -152,11 +155,11 @@ export default function Home() {
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("waiting", handleWaiting);
+      audio.removeEventListener("play", handlePlay);
       audio.removeEventListener("playing", handlePlaying);
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("error", handleError);
-      audioRef.current = null;
     };
   }, []);
 
@@ -172,16 +175,22 @@ export default function Home() {
     setCurrentTime(0);
     setDurationSeconds(0);
     setPlaybackError(null);
-    if (!audio) return;
+    if (!audio || !song.audioUrl.trim()) {
+      setPlaying(false);
+      setPlaybackError("This track does not have a valid audio source.");
+      return;
+    }
     audio.pause();
     audio.src = song.audioUrl;
     audio.load();
     if (autoplay) {
       setIsLoading(true);
-      audio.play().catch(() => {
+      audio.play().catch((error: unknown) => {
         setIsLoading(false);
         setPlaying(false);
-        setPlaybackError("Tap play to start this demo track.");
+        setPlaybackError(error instanceof DOMException && error.name === "NotAllowedError"
+          ? "Playback was blocked by the browser. Tap Play to start audio."
+          : "Audio could not start. Check your connection and try again.");
       });
     } else {
       setIsLoading(false);
@@ -199,7 +208,7 @@ export default function Home() {
       setIsLoading(true);
       audio.play().catch(() => {
         setIsLoading(false);
-        setPlaybackError("Tap play to start this demo track.");
+        setPlaybackError("Playback was blocked by the browser. Tap Play to start audio.");
       });
     } else {
       audio.pause();
@@ -270,6 +279,7 @@ export default function Home() {
       </aside>
 
       <main className="main-content">
+        <audio ref={audioRef} preload="metadata" aria-hidden="true" />
         <header className="topbar">
           <div className="mobile-brand"><span className="brand-mark"><span /></span>VIBRA</div>
           <div className="breadcrumbs"><span>Music</span><ChevronRight size={14} /><strong>{activeNav}</strong></div>
