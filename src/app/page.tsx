@@ -43,10 +43,6 @@ type Song = {
   audioUrl: string;
 };
 
-type ApkStatus = "checking" | "ready" | "error";
-
-const APK_DOWNLOAD_URL = "/VIBRA-debug.apk";
-
 const covers = {
   midnight:
     "https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=900&q=85",
@@ -127,26 +123,11 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [apkStatus, setApkStatus] = useState<ApkStatus>("checking");
   const [backToastVisible, setBackToastVisible] = useState(false);
   const navigationStackRef = useRef<string[]>(["Home"]);
   const backArmedRef = useRef(false);
   const backTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playbackTapRef = useRef(0);
-
-  const checkApk = useCallback(async () => {
-    setApkStatus("checking");
-    try {
-      const response = await fetch(APK_DOWNLOAD_URL, { method: "HEAD", cache: "no-store" });
-      setApkStatus(response.ok ? "ready" : "error");
-    } catch {
-      setApkStatus("error");
-    }
-  }, []);
-
-  useEffect(() => {
-    void checkApk();
-  }, [checkApk]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -412,7 +393,7 @@ export default function Home() {
           ) : activeNav === "Discover" ? (
             <DiscoverView playSong={playSong} />
           ) : (
-            <HomeView playing={playing} setPlaying={setPlaying} liked={liked} setLiked={setLiked} playSong={playSong} setShowPlayer={setShowPlayer} apkStatus={apkStatus} retryApk={checkApk} />
+            <HomeView playing={playing} setPlaying={setPlaying} liked={liked} setLiked={setLiked} playSong={playSong} setShowPlayer={setShowPlayer} />
           )}
         </div>
 
@@ -426,12 +407,12 @@ export default function Home() {
   );
 }
 
-function HomeView({ playing, setPlaying, liked, setLiked, playSong, setShowPlayer, apkStatus, retryApk }: { playing: boolean; setPlaying: (v: boolean) => void; liked: boolean; setLiked: (v: boolean) => void; playSong: (song: Song) => void; setShowPlayer: (v: boolean) => void; apkStatus: ApkStatus; retryApk: () => void }) {
+function HomeView({ playing, setPlaying, liked, setLiked, playSong, setShowPlayer }: { playing: boolean; setPlaying: (v: boolean) => void; liked: boolean; setLiked: (v: boolean) => void; playSong: (song: Song) => void; setShowPlayer: (v: boolean) => void }) {
   return (
     <div className="page home-page">
       <section className="welcome-row"><div><p className="overline">Tuesday, August 12</p><h1>Good evening, Alex <span>✦</span></h1><p className="subtle">A little music for wherever you are.</p></div><button className="listen-button" onClick={() => { playSong(songs[0]); setShowPlayer(true); }}><Play size={15} fill="currentColor" /> Start listening</button></section>
       <section className="hero-banner">
-        <div className="hero-copy"><p className="overline accent-text">VIBRA ORIGINAL • DAILY MIX</p><h2>Your evening<br /><em>in stereo.</em></h2><p>Dreamy electronics, warm vocals, and slow-burn grooves curated for your night.</p><div className="hero-actions"><button className="hero-button" onClick={() => playSong(songs[0])}>Play mix <Play size={14} fill="currentColor" /></button><AndroidDownload status={apkStatus} retry={retryApk} /></div><div className="hero-dots"><span className="selected" /><span /><span /><span /></div></div>
+        <div className="hero-copy"><p className="overline accent-text">VIBRA ORIGINAL • DAILY MIX</p><h2>Your evening<br /><em>in stereo.</em></h2><p>Dreamy electronics, warm vocals, and slow-burn grooves curated for your night.</p><button className="hero-button" onClick={() => playSong(songs[0])}>Play mix <Play size={14} fill="currentColor" /></button><div className="hero-dots"><span className="selected" /><span /><span /><span /></div></div>
         <div className="hero-art"><Artwork src={covers.midnight} /><div className="hero-disc"><div>V</div></div><div className="floating-note note-one">♪</div><div className="floating-note note-two">♫</div></div>
       </section>
       <section className="mood-row"><div className="section-heading"><h2>How are you feeling?</h2><span>Pick a mood</span></div><div className="moods">{moods.map(([name, color]) => <button key={name} className="mood-pill" style={{ "--mood": color } as React.CSSProperties}><span className="mood-icon">{name === "Chill" ? "◒" : name === "Focus" ? "◐" : name === "Workout" ? "↗" : name === "Party" ? "✦" : "☾"}</span>{name}</button>)}</div></section>
@@ -440,16 +421,9 @@ function HomeView({ playing, setPlaying, liked, setLiked, playSong, setShowPlaye
       <MusicSection title="Trending now" link="See all"><div className="horizontal-cards">{songs.slice(2).concat(songs.slice(0, 1)).map((song) => <AlbumCard key={`trend-${song.title}`} song={song} onPlay={() => { playSong(song); setPlaying(true); }} onOpen={() => setShowPlayer(true)} />)}</div></MusicSection>
       <section className="split-sections"><MusicSection title="Popular playlists" link="Explore"><div className="playlist-list"><PlaylistItem title="Late Night Drive" subtitle="VIBRA · 32 songs" cover={covers.coast} /><PlaylistItem title="Soft Focus" subtitle="VIBRA · 48 songs" cover={covers.blue} /></div></MusicSection><MusicSection title="Daily mixes" link="Refresh"><div className="mix-list"><div className="mix-card mix-purple"><span>Mix 01</span><strong>Made for<br />your mood</strong><PlayButton small onClick={() => setPlaying(!playing)} /></div><div className="mix-card mix-orange"><span>Mix 02</span><strong>Fresh<br />discoveries</strong><PlayButton small onClick={() => setPlaying(!playing)} /></div></div></MusicSection></section>
       <MusicSection title="Recommended artists" link="See all"><div className="artist-row"><Artist name="Maggie Rogers" image={covers.face} /><Artist name="Bonobo" image={covers.ocean} /><Artist name="Lana Del Rey" image={covers.rose} /><Artist name="Jamie xx" image={covers.desert} /><Artist name="Nujabes" image={covers.midnight} /></div></MusicSection>
-      <section className="download-footer"><div><p className="overline accent-text">READY WHEN YOU ARE</p><h2>Get VIBRA for Android</h2><p>Take your music with you, wherever the day leads.</p></div><div className="download-actions"><AndroidDownload status={apkStatus} retry={retryApk} compact /><a className="install-link" href={APK_DOWNLOAD_URL} download="VIBRA-debug.apk">Install on Android <ChevronRight size={14} /></a></div></section><div className="bottom-space" />
+      <div className="bottom-space" />
     </div>
   );
-}
-
-function AndroidDownload({ status, retry, compact = false }: { status: ApkStatus; retry: () => void; compact?: boolean }) {
-  if (status === "error") {
-    return <button className={`android-download download-error ${compact ? "compact" : ""}`} onClick={retry}><Download size={17} /><span><strong>APK unavailable</strong><small>Tap to retry</small></span><X size={15} /></button>;
-  }
-  return <a className={`android-download ${compact ? "compact" : ""} ${status === "checking" ? "is-checking" : ""}`} href={APK_DOWNLOAD_URL} download="VIBRA-debug.apk" aria-disabled={status !== "ready"} onClick={(event) => { if (status !== "ready") event.preventDefault(); }}><Download size={17} /><span><strong>{compact ? "Download APK" : "Download VIBRA for Android"}</strong><small>{status === "checking" ? "Checking latest APK..." : "APK v1.0 · 8.8 MB"}</small></span><ChevronRight size={15} /></a>;
 }
 
 function MusicSection({ title, link, children }: { title: string; link: string; children: React.ReactNode }) {
