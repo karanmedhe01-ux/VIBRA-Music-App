@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { App } from "@capacitor/app";
 import {
   Album,
@@ -39,8 +39,9 @@ type Song = {
   title: string;
   artist: string;
   cover: string;
-  duration: string;
-  audioUrl: string;
+  duration?: string;
+  youtubeVideoId: string;
+  youtubeKind: "video" | "channel" | "playlist";
 };
 
 const covers = {
@@ -62,15 +63,7 @@ const covers = {
     "https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=700&q=85",
 };
 
-const songs: Song[] = [
-  // SoundHelix demo tracks are used here so the player works without an API key.
-  { title: "Midnight City", artist: "M83", cover: covers.midnight, duration: "4:03", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-  { title: "The Color Violet", artist: "Tory Lanez", cover: covers.rose, duration: "3:46", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
-  { title: "Innerbloom", artist: "RÜFÜS DU SOL", cover: covers.gold, duration: "9:35", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
-  { title: "Sweet Disposition", artist: "The Temper Trap", cover: covers.blue, duration: "3:54", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
-  { title: "Sunset Lover", artist: "Petit Biscuit", cover: covers.ocean, duration: "3:58", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" },
-  { title: "After Dark", artist: "Mr.Kitty", cover: covers.face, duration: "4:17", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3" },
-];
+const songs: Song[] = [];
 
 const navItems = [
   { label: "Home", icon: HomeIcon },
@@ -108,14 +101,14 @@ function PlayButton({ onClick, small = false }: { onClick?: () => void; small?: 
 }
 
 export default function Home() {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const youtubeCommandRef = useRef<((command: string, args?: unknown[]) => void) | null>(null);
   const [activeNav, setActiveNav] = useState("Home");
   const [playing, setPlaying] = useState(false);
   const [liked, setLiked] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
   const [search, setSearch] = useState("");
-  const [selectedSong, setSelectedSong] = useState(songs[0]);
-  const [queue, setQueue] = useState<Song[]>(songs);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const [queue, setQueue] = useState<Song[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
@@ -129,125 +122,56 @@ export default function Home() {
   const backTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playbackTapRef = useRef(0);
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.preload = "metadata";
-    audio.volume = volume;
-
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const handleLoadedMetadata = () => setDurationSeconds(Number.isFinite(audio.duration) ? audio.duration : 0);
-    const handleWaiting = () => setIsLoading(true);
-    const handlePlay = () => setPlaying(true);
-    const handlePlaying = () => {
-      setIsLoading(false);
-      setPlaybackError(null);
-    };
-    const handlePause = () => setPlaying(false);
-    const handleEnded = () => nextSongRef.current();
-    const handleError = () => {
-      setIsLoading(false);
-      setPlaying(false);
-      const mediaError = audio.error;
-      const errorCode = mediaError?.code ? ` (code ${mediaError.code})` : "";
-      setPlaybackError(`Audio could not be loaded${errorCode}. Check your connection or try another track.`);
-    };
-
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    audio.addEventListener("waiting", handleWaiting);
-    audio.addEventListener("play", handlePlay);
-    audio.addEventListener("playing", handlePlaying);
-    audio.addEventListener("pause", handlePause);
-    audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("error", handleError);
-
-    return () => {
-      audio.pause();
-      audio.removeAttribute("src");
-      audio.load();
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("waiting", handleWaiting);
-      audio.removeEventListener("play", handlePlay);
-      audio.removeEventListener("playing", handlePlaying);
-      audio.removeEventListener("pause", handlePause);
-      audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("error", handleError);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume;
-  }, [volume]);
-
   const startSong = useCallback((song: Song, autoplay = true) => {
-    const audio = audioRef.current;
-    const nextIndex = songs.findIndex((item) => item.audioUrl === song.audioUrl);
     setSelectedSong(song);
-    setQueueIndex(nextIndex >= 0 ? nextIndex : 0);
+    setQueue((currentQueue) => currentQueue.some((item) => item.youtubeVideoId === song.youtubeVideoId) ? currentQueue : [...currentQueue, song]);
     setCurrentTime(0);
     setDurationSeconds(0);
     setPlaybackError(null);
-    if (!audio || !song.audioUrl.trim()) {
-      setPlaying(false);
-      setPlaybackError("This track does not have a valid audio source.");
-      return;
-    }
-    audio.pause();
-    audio.src = song.audioUrl;
-    audio.load();
-    if (autoplay) {
-      setIsLoading(true);
-      audio.play().catch((error: unknown) => {
-        setIsLoading(false);
-        setPlaying(false);
-        setPlaybackError(error instanceof DOMException && error.name === "NotAllowedError"
-          ? "Playback was blocked by the browser. Tap Play to start audio."
-          : "Audio could not start. Check your connection and try again.");
-      });
-    } else {
-      setIsLoading(false);
-      setPlaying(false);
-    }
-  }, []);
+    setIsLoading(true);
+    setPlaying(autoplay);
+    setShowPlayer(true);
+    const songIndex = queue.findIndex((item) => item.youtubeVideoId === song.youtubeVideoId);
+    setQueueIndex(songIndex >= 0 ? songIndex : 0);
+  }, [queue]);
 
   const togglePlayback = useCallback(() => {
     const now = Date.now();
     if (now - playbackTapRef.current < 280) return;
     playbackTapRef.current = now;
-    const audio = audioRef.current;
-    if (!audio || !audio.src) {
-      startSong(selectedSong);
+    if (!selectedSong) {
+      setPlaybackError("Search for a song to start playback.");
       return;
     }
-    if (audio.paused) {
-      setIsLoading(true);
-      audio.play().catch(() => {
-        setIsLoading(false);
-        setPlaybackError("Playback was blocked by the browser. Tap Play to start audio.");
-      });
-    } else {
-      audio.pause();
-    }
-  }, [selectedSong, startSong]);
+    youtubeCommandRef.current?.(playing ? "pauseVideo" : "playVideo");
+  }, [playing, selectedSong]);
 
   const playSong = useCallback((song: Song) => startSong(song), [startSong]);
   const nextSong = useCallback(() => {
+    if (!queue.length) {
+      setPlaybackError("Your queue is empty. Search for a song to continue.");
+      return;
+    }
     const nextIndex = (queueIndex + 1) % queue.length;
     startSong(queue[nextIndex]);
   }, [queue, queueIndex, startSong]);
   const previousSong = useCallback(() => {
-    const audio = audioRef.current;
-    if (audio && audio.currentTime > 3) {
-      audio.currentTime = 0;
+    if (currentTime > 3) {
+      youtubeCommandRef.current?.("seekTo", [0, true]);
+      setCurrentTime(0);
       return;
     }
+    if (!queue.length) return;
     const previousIndex = (queueIndex - 1 + queue.length) % queue.length;
     startSong(queue[previousIndex]);
-  }, [queue, queueIndex, startSong]);
-  const nextSongRef = useRef(nextSong);
-  nextSongRef.current = nextSong;
+  }, [currentTime, queue, queueIndex, startSong]);
+  const seek = (nextTime: number) => {
+    youtubeCommandRef.current?.("seekTo", [nextTime, true]);
+    setCurrentTime(nextTime);
+  };
+  const setYoutubeCommand = (command: ((name: string, args?: unknown[]) => void) | null) => {
+    youtubeCommandRef.current = command;
+  };
 
   const goBack = useCallback(() => {
     if (menuOpen) {
@@ -304,18 +228,6 @@ export default function Home() {
     };
   }, [handleBackPress]);
 
-  const seek = (nextTime: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = nextTime;
-      setCurrentTime(nextTime);
-    }
-  };
-
-  const filteredSongs = useMemo(
-    () => songs.filter((song) => `${song.title} ${song.artist}`.toLowerCase().includes(search.toLowerCase())),
-    [search],
-  );
-
   const navigate = (label: string) => {
     if (label === activeNav) {
       setMenuOpen(false);
@@ -370,7 +282,6 @@ export default function Home() {
       </aside>
 
       <main className="main-content">
-        <audio ref={audioRef} preload="metadata" aria-hidden="true" />
         <header className="topbar">
           <div className="mobile-brand"><span className="brand-mark"><span /></span>VIBRA</div>
           <div className="breadcrumbs"><span>Music</span><ChevronRight size={14} /><strong>{activeNav}</strong></div>
@@ -383,7 +294,7 @@ export default function Home() {
 
         <div className="screen-stage" key={`${activeNav}-${showPlayer ? "player" : "browse"}`}>
           {activeNav === "Search" ? (
-            <SearchView search={search} setSearch={setSearch} songs={filteredSongs} playSong={playSong} />
+            <SearchView search={search} setSearch={setSearch} playSong={playSong} />
           ) : activeNav === "Your Library" || activeNav === "Playlists" ? (
             <LibraryView liked={liked} setShowPlayer={setShowPlayer} playSong={playSong} />
           ) : activeNav === "Settings" ? (
@@ -397,8 +308,8 @@ export default function Home() {
           )}
         </div>
 
-        {!showPlayer && <MiniPlayer song={selectedSong} playing={playing} liked={liked} setLiked={setLiked} togglePlayback={togglePlayback} setShowPlayer={setShowPlayer} currentTime={currentTime} durationSeconds={durationSeconds} isLoading={isLoading} playbackError={playbackError} nextSong={nextSong} />}
-        {showPlayer && <FullPlayer song={selectedSong} playing={playing} togglePlayback={togglePlayback} liked={liked} setLiked={setLiked} close={() => setShowPlayer(false)} currentTime={currentTime} durationSeconds={durationSeconds} seek={seek} previousSong={previousSong} nextSong={nextSong} volume={volume} setVolume={setVolume} isLoading={isLoading} playbackError={playbackError} queue={queue} setQueue={setQueue} playSong={playSong} />}
+        {!showPlayer && selectedSong && <MiniPlayer song={selectedSong} playing={playing} liked={liked} setLiked={setLiked} togglePlayback={togglePlayback} setShowPlayer={setShowPlayer} currentTime={currentTime} durationSeconds={durationSeconds} isLoading={isLoading} playbackError={playbackError} nextSong={nextSong} />}
+        {showPlayer && selectedSong && <FullPlayer song={selectedSong} playing={playing} togglePlayback={togglePlayback} liked={liked} setLiked={setLiked} close={() => setShowPlayer(false)} currentTime={currentTime} durationSeconds={durationSeconds} seek={seek} previousSong={previousSong} nextSong={nextSong} volume={volume} setVolume={setVolume} isLoading={isLoading} playbackError={playbackError} queue={queue} setQueue={setQueue} playSong={playSong} setYoutubeCommand={setYoutubeCommand} setPlaying={setPlaying} setLoading={setIsLoading} setProgress={setCurrentTime} setDuration={setDurationSeconds} />}
       </main>
       <nav className="bottom-nav" aria-label="Primary navigation">{bottomTabs.map(({ label, icon: Icon }) => <button key={label} onClick={() => selectBottomTab(label)} className={activeTab === label ? "active" : ""} aria-current={activeTab === label ? "page" : undefined}><span className="bottom-nav-icon"><Icon size={18} strokeWidth={activeTab === label ? 2.4 : 1.8} />{label === "Player" && playing && <i />}</span><span>{label}</span></button>)}</nav>
       {menuOpen && <div className="mobile-nav-popover"><button onClick={() => { navigate("Home"); setMenuOpen(false); }}>Home</button><button onClick={() => { navigate("Search"); setMenuOpen(false); }}>Search</button><button onClick={() => { navigate("Your Library"); setMenuOpen(false); }}>Library</button><button onClick={() => { navigate("Settings"); setMenuOpen(false); }}>Settings</button></div>}
@@ -446,19 +357,82 @@ function MiniPlayer({ song, playing, liked, setLiked, togglePlayback, setShowPla
   return <div className="mini-player"><div className="mini-song" onClick={() => setShowPlayer(true)}><Artwork src={song.cover} className="mini-art" /><div><strong>{song.title}</strong><span>{song.artist}</span></div></div><div className="mini-controls"><button onClick={togglePlayback} className="mini-main" aria-label={playing ? "Pause" : "Play"}>{isLoading ? <span className="spinner" /> : playing ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}</button><button onClick={nextSong} aria-label="Next track"><SkipForward size={17} /></button></div><div className={`mini-progress ${playbackError ? "has-error" : ""}`} title={playbackError ?? (playing ? "Playing" : "Paused")}><span style={{ width: progress }} /><i style={{ left: progress }} /></div><button className={`mini-heart ${liked ? "liked" : ""}`} onClick={() => setLiked(!liked)}><Heart size={18} fill={liked ? "currentColor" : "none"} /></button><button className="queue-button" onClick={() => setShowPlayer(true)}><ListMusic size={18} /></button></div>;
 }
 
-function FullPlayer({ song, playing, togglePlayback, liked, setLiked, close, currentTime, durationSeconds, seek, previousSong, nextSong, volume, setVolume, isLoading, playbackError, queue, setQueue, playSong }: { song: Song; playing: boolean; togglePlayback: () => void; liked: boolean; setLiked: (v: boolean) => void; close: () => void; currentTime: number; durationSeconds: number; seek: (value: number) => void; previousSong: () => void; nextSong: () => void; volume: number; setVolume: (v: number) => void; isLoading: boolean; playbackError: string | null; queue: Song[]; setQueue: (songs: Song[]) => void; playSong: (song: Song) => void }) {
+function FullPlayer({ song, playing, togglePlayback, liked, setLiked, close, currentTime, durationSeconds, seek, previousSong, nextSong, volume, setVolume, isLoading, playbackError, queue, setQueue, playSong, setYoutubeCommand, setPlaying, setLoading, setProgress, setDuration }: { song: Song; playing: boolean; togglePlayback: () => void; liked: boolean; setLiked: (v: boolean) => void; close: () => void; currentTime: number; durationSeconds: number; seek: (value: number) => void; previousSong: () => void; nextSong: () => void; volume: number; setVolume: (v: number) => void; isLoading: boolean; playbackError: string | null; queue: Song[]; setQueue: (songs: Song[]) => void; playSong: (song: Song) => void; setYoutubeCommand: (command: ((name: string, args?: unknown[]) => void) | null) => void; setPlaying: (v: boolean) => void; setLoading: (v: boolean) => void; setProgress: (v: number) => void; setDuration: (v: number) => void }) {
   const progress = durationSeconds ? Math.min(100, (currentTime / durationSeconds) * 100) : 0;
-  const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
-  return <div className="full-player"><div className="player-top"><button onClick={close} className="back-button"><ArrowLeft size={20} /><span>Back to browsing</span></button><span>NOW PLAYING</span><button className="icon-button"><MoreHorizontal size={20} /></button></div><div className="player-body"><div className="player-art-wrap"><Artwork src={song.cover} className="player-art" /><div className="player-glow" /></div><div className="player-details"><div className="player-label">PLAYING FROM <span>Evening Mix</span></div><h1>{song.title}</h1><h3>{song.artist}</h3><div className="playback-status">{isLoading ? "Loading demo audio..." : playbackError ? <><span>{playbackError}</span><button onClick={togglePlayback}>Retry</button></> : playing ? "Now playing" : "Paused"}</div><div className="player-progress"><div className="progress-line" style={{ "--progress": `${progress}%` } as React.CSSProperties}><input type="range" min="0" max={durationSeconds || 1} step="0.1" value={Math.min(currentTime, durationSeconds || 1)} onChange={(event) => seek(Number(event.target.value))} aria-label="Seek through song" /></div><div><span>{formatTime(currentTime)}</span><span>{durationSeconds ? formatTime(durationSeconds) : song.duration}</span></div></div><div className="player-controls"><button aria-label="Shuffle"><Shuffle size={20} /></button><button onClick={previousSong} aria-label="Previous track"><SkipBack size={25} fill="currentColor" /></button><button className="player-play" onClick={togglePlayback} aria-label={playing ? "Pause" : "Play"}>{isLoading ? <span className="spinner spinner-dark" /> : playing ? <Pause size={25} fill="currentColor" /> : <Play size={25} fill="currentColor" />}</button><button onClick={nextSong} aria-label="Next track"><SkipForward size={25} fill="currentColor" /></button><button aria-label="Repeat"><Repeat2 size={20} /></button></div><div className="player-actions"><button className={liked ? "liked" : ""} onClick={() => setLiked(!liked)}><Heart size={19} fill={liked ? "currentColor" : "none"} /> Favorite</button><button><Plus size={19} /> Add to playlist</button><button><Share2 size={18} /> Share</button><button><Mic2 size={18} /> Lyrics</button><button><Clock3 size={18} /> Sleep timer</button></div><label className="player-volume"><Volume2 size={17} /><input type="range" min="0" max="1" step="0.01" value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label="Volume" /></label></div></div><div className="queue-panel"><div><span className="overline">UP NEXT</span><h3>Queue <span>{queue.length} songs</span></h3></div><button>View queue <ChevronRight size={15} /></button>{queue.filter((item) => item.audioUrl !== song.audioUrl).slice(0, 4).map((item) => <button className="queue-track" key={item.audioUrl} onClick={() => playSong(item)}><Artwork src={item.cover} className="queue-art" /><div><strong>{item.title}</strong><span>{item.artist}</span></div><span>{item.duration}</span></button>)}<button className="queue-add" onClick={() => setQueue([...queue, songs[(queue.length + 1) % songs.length]])}><Plus size={15} /> Add demo track to queue</button></div></div>;
+  const formatTime = (seconds: number) => String(Math.floor(seconds / 60)) + ":" + String(Math.floor(seconds % 60)).padStart(2, "0");
+  return <div className="full-player"><div className="player-top"><button onClick={close} className="back-button"><ArrowLeft size={20} /><span>Back to browsing</span></button><span>NOW PLAYING</span><button className="icon-button"><MoreHorizontal size={20} /></button></div><div className="player-body"><div className="player-art-wrap youtube-art-wrap"><YouTubePlayer videoId={song.youtubeVideoId} volume={volume} setCommand={setYoutubeCommand} setPlaying={setPlaying} setLoading={setLoading} setProgress={setProgress} setDuration={setDuration} onEnded={nextSong} onError={(message) => { setLoading(false); setPlaying(false); }} /></div><div className="player-details"><div className="player-label">PLAYING FROM <span>YouTube Music</span></div><h1>{song.title}</h1><h3>{song.artist}</h3><div className="playback-status">{isLoading ? "Loading official YouTube player..." : playbackError ? <><span>{playbackError}</span><button onClick={togglePlayback}>Retry</button></> : playing ? "Now playing" : "Paused"}</div><div className="player-progress"><div className="progress-line" style={{ "--progress": progress + "%" } as React.CSSProperties}><input type="range" min="0" max={durationSeconds || 1} step="0.1" value={Math.min(currentTime, durationSeconds || 1)} onChange={(event) => seek(Number(event.target.value))} aria-label="Seek through song" /></div><div><span>{formatTime(currentTime)}</span><span>{durationSeconds ? formatTime(durationSeconds) : "—"}</span></div></div><div className="player-controls"><button aria-label="Shuffle"><Shuffle size={20} /></button><button onClick={previousSong} aria-label="Previous track"><SkipBack size={25} fill="currentColor" /></button><button className="player-play" onClick={togglePlayback} aria-label={playing ? "Pause" : "Play"}>{isLoading ? <span className="spinner spinner-dark" /> : playing ? <Pause size={25} fill="currentColor" /> : <Play size={25} fill="currentColor" />}</button><button onClick={nextSong} aria-label="Next track"><SkipForward size={25} fill="currentColor" /></button><button aria-label="Repeat"><Repeat2 size={20} /></button></div><div className="player-actions"><button className={liked ? "liked" : ""} onClick={() => setLiked(!liked)}><Heart size={19} fill={liked ? "currentColor" : "none"} /> Favorite</button><button><Plus size={19} /> Add to playlist</button><button><Share2 size={18} /> Share</button><button><Mic2 size={18} /> Official player</button><button><Clock3 size={18} /> Sleep timer</button></div><label className="player-volume"><Volume2 size={17} /><input type="range" min="0" max="1" step="0.01" value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label="Volume" /></label></div></div><div className="queue-panel"><div><span className="overline">UP NEXT</span><h3>Queue <span>{queue.length} songs</span></h3></div><button>View queue <ChevronRight size={15} /></button>{queue.filter((item) => item.youtubeVideoId !== song.youtubeVideoId).slice(0, 4).map((item) => <button className="queue-track" key={item.youtubeVideoId} onClick={() => playSong(item)}><Artwork src={item.cover} className="queue-art" /><div><strong>{item.title}</strong><span>{item.artist}</span></div><span>{item.duration ?? "YouTube"}</span></button>)}<button className="queue-add" onClick={() => setQueue([...queue])}><Plus size={15} /> Queue is managed from Search</button></div></div>;
 }
 
-function SearchView({ search, setSearch, songs, playSong }: { search: string; setSearch: (v: string) => void; songs: Song[]; playSong: (song: Song) => void }) {
+function YouTubePlayer({ videoId, volume, setCommand, setPlaying, setLoading, setProgress, setDuration, onEnded, onError }: { videoId: string; volume: number; setCommand: (command: ((name: string, args?: unknown[]) => void) | null) => void; setPlaying: (v: boolean) => void; setLoading: (v: boolean) => void; setProgress: (v: number) => void; setDuration: (v: number) => void; onEnded: () => void; onError: (message: string) => void }) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<any>(null);
+  useEffect(() => {
+    const win = window as typeof window & { YT?: { Player: new (element: HTMLElement, options: any) => any }; onYouTubeIframeAPIReady?: () => void };
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let cancelled = false;
+    const createPlayer = () => {
+      if (cancelled || !hostRef.current || !win.YT?.Player) return;
+      playerRef.current = new win.YT.Player(hostRef.current, { videoId, playerVars: { autoplay: 1, controls: 1, playsinline: 1, rel: 0, modestbranding: 1, origin: window.location.origin }, events: { onReady: () => { setCommand((name, args = []) => { const method = playerRef.current?.[name]; if (typeof method === "function") method.apply(playerRef.current, args); }); playerRef.current?.setVolume?.(volume * 100); setDuration(playerRef.current?.getDuration?.() ?? 0); setLoading(false); interval = setInterval(() => { if (playerRef.current) { setProgress(playerRef.current.getCurrentTime?.() ?? 0); setDuration(playerRef.current.getDuration?.() ?? 0); } }, 500); }, onStateChange: (event: { data: number }) => { if (event.data === 1) { setPlaying(true); setLoading(false); } else if (event.data === 2) setPlaying(false); else if (event.data === 3) setLoading(true); else if (event.data === 0) { setPlaying(false); onEnded(); } }, onError: (event: { data: number }) => onError("YouTube player error (" + event.data + ").") } });
+    };
+    if (win.YT?.Player) createPlayer();
+    else {
+      let script = document.querySelector<HTMLScriptElement>("script[data-vibra-youtube]");
+      if (!script) { script = document.createElement("script"); script.src = "https://www.youtube.com/iframe_api"; script.async = true; script.dataset.vibraYoutube = "true"; document.head.appendChild(script); }
+      const previousReady = win.onYouTubeIframeAPIReady;
+      win.onYouTubeIframeAPIReady = () => { previousReady?.(); createPlayer(); };
+    }
+    return () => { cancelled = true; setCommand(null); if (interval) clearInterval(interval); playerRef.current?.destroy?.(); playerRef.current = null; };
+  }, [videoId]);
+  useEffect(() => { playerRef.current?.setVolume?.(volume * 100); }, [volume]);
+  return <div ref={hostRef} className="youtube-player" aria-label="Official YouTube player" />;
+}
+
+const youtubeSearchCache = new Map<string, { expiresAt: number; results: Song[] }>();
+
+async function searchYouTube(query: string, category: string): Promise<Song[]> {
+  const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_DATA_API_KEY ?? "";
+  if (!apiKey) throw new Error("YOUTUBE_DATA_API_KEY is not available to the app.");
+  const cacheKey = category + ":" + query.trim().toLocaleLowerCase();
+  const cached = youtubeSearchCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.results;
+  const type = category === "Artists" ? "channel" : category === "Playlists" || category === "Albums" ? "playlist" : "video";
+  const params = new URLSearchParams({ key: apiKey, part: "snippet", q: category === "Albums" ? query + " album" : query, type, maxResults: "20", regionCode: "IN", relevanceLanguage: "hi", safeSearch: "moderate", order: "relevance" });
+  if (type === "video") params.set("videoCategoryId", "10");
+  const response = await fetch("https://www.googleapis.com/youtube/v3/search?" + params.toString());
+  if (!response.ok) throw new Error("YouTube search failed (" + response.status + ").");
+  const payload = await response.json() as { items?: Array<{ id?: { videoId?: string; channelId?: string; playlistId?: string }; snippet?: { title?: string; channelTitle?: string; thumbnails?: { high?: { url?: string }; medium?: { url?: string } } } }> };
+  const results = (payload.items ?? []).flatMap((item) => {
+    const id = item.id?.videoId ?? item.id?.channelId ?? item.id?.playlistId;
+    if (!id || !item.snippet?.title) return [];
+    return [{ title: item.snippet.title, artist: item.snippet.channelTitle ?? "YouTube", cover: item.snippet.thumbnails?.high?.url ?? item.snippet.thumbnails?.medium?.url ?? covers.midnight, youtubeVideoId: id, youtubeKind: type === "video" ? "video" : type === "channel" ? "channel" : "playlist", duration: "YouTube" } satisfies Song];
+  });
+  youtubeSearchCache.set(cacheKey, { expiresAt: Date.now() + 5 * 60 * 1000, results });
+  return results;
+}
+
+function SearchView({ search, setSearch, playSong }: { search: string; setSearch: (v: string) => void; playSong: (song: Song) => void }) {
   const [category, setCategory] = useState("Songs");
   const [sort, setSort] = useState("Relevance");
+  const [results, setResults] = useState<Song[]>([]);
+  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
   const categories = ["Songs", "Artists", "Albums", "Playlists"];
-  const sortedSongs = [...songs].sort((a, b) => sort === "A-Z" ? a.title.localeCompare(b.title) : 0);
-  return <div className="page search-page"><div className="search-intro"><p className="overline accent-text">FIND YOUR FREQUENCY</p><h1>What are you<br /><em>in the mood for?</em></h1><div className="search-input"><SearchIcon size={21} /><input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search songs, artists, albums..." />{search && <button onClick={() => setSearch("")} aria-label="Clear search"><X size={18} /></button>}<span>⌘ K</span></div></div>{search ? <MusicSection title={'Results for “' + search + '”'} link=""><div className="search-category-tabs">{categories.map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}<label><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option>Relevance</option><option>A-Z</option></select></label></div>{!songs.length ? <div className="empty-state"><span className="empty-icon"><SearchIcon size={18} /></span><strong>No results for “{search}”</strong><span>Try a different spelling or search in another language.</span><button onClick={() => setSearch("")}>Clear search</button></div> : category === "Songs" ? <div className="search-results">{sortedSongs.map((song, i) => <div className="result-row" key={song.title}><span className="result-number">{String(i + 1).padStart(2, "0")}</span><Artwork src={song.cover} className="result-art" /><div><strong>{song.title}</strong><span>{song.artist} · Song</span></div><button onClick={() => playSong(song)} aria-label={'Play ' + song.title}><Play size={15} fill="currentColor" /></button><span>{song.duration}</span><MoreHorizontal size={18} /></div>)}</div> : category === "Artists" ? <div className="category-results">{sortedSongs.map((song) => <button key={song.artist} onClick={() => setSearch(song.artist)}><Artwork src={song.cover} className="artist-art" /><span><strong>{song.artist}</strong><small>Artist</small></span><ChevronRight size={16} /></button>)}</div> : category === "Albums" ? <div className="category-results">{sortedSongs.map((song) => <button key={song.title} onClick={() => setSearch(song.title)}><Artwork src={song.cover} className="result-art" /><span><strong>{song.title}</strong><small>Album · {song.artist}</small></span><ChevronRight size={16} /></button>)}</div> : <div className="category-results">{sortedSongs.map((song, index) => <button key={song.title + index} onClick={() => setSearch("Late Night Drive")}><Artwork src={index % 2 ? covers.blue : covers.coast} className="result-art" /><span><strong>{index % 2 ? "Soft Focus" : "Late Night Drive"}</strong><small>Playlist · VIBRA</small></span><ChevronRight size={16} /></button>)}</div>}</MusicSection> : <><MusicSection title="Recent searches" link="Clear"><div className="search-chips"><button onClick={() => setSearch("Late night drive")}>Late night drive <Clock3 size={14} /></button><button onClick={() => setSearch("RÜFÜS DU SOL")}>RÜFÜS DU SOL <Clock3 size={14} /></button><button onClick={() => setSearch("Focus")}>Focus <Clock3 size={14} /></button></div></MusicSection><MusicSection title="Trending searches" link=""><div className="trending-grid"><span><b>01</b> Sabrina Carpenter</span><span><b>02</b> Fred again..</span><span><b>03</b> Charli xcx</span><span><b>04</b> New music friday</span></div></MusicSection><MusicSection title="Browse all" link=""><div className="browse-grid"><div>Pop <span>↗</span></div><div>Electronic <span>↗</span></div><div>Hip-hop <span>↗</span></div><div>R&B <span>↗</span></div></div></MusicSection></>}</div>;
+  useEffect(() => {
+    const query = search.trim();
+    if (!query) { setResults([]); setStatus("idle"); setError(null); return; }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setStatus("loading");
+      setError(null);
+      void searchYouTube(query, category).then((nextResults) => { if (!cancelled) { setResults(nextResults); setStatus("ready"); } }).catch((reason: unknown) => { if (!cancelled) { setResults([]); setStatus("error"); setError(reason instanceof Error ? reason.message : "YouTube search is unavailable right now."); } });
+    }, 350);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [category, search]);
+  const sortedResults = [...results].sort((a, b) => sort === "A-Z" ? a.title.localeCompare(b.title) : 0);
+  return <div className="page search-page"><div className="search-intro"><p className="overline accent-text">YOUTUBE MUSIC SEARCH</p><h1>Find your<br /><em>next favorite.</em></h1><div className="search-input"><SearchIcon size={21} /><input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Hindi, Punjabi, artists, albums..." />{search && <button onClick={() => setSearch("")} aria-label="Clear search"><X size={18} /></button>}<span>⌘ K</span></div></div>{search ? <MusicSection title={'Results for “' + search + '”'} link=""><div className="search-category-tabs">{categories.map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}<label><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option>Relevance</option><option>A-Z</option></select></label></div>{status === "loading" ? <SearchSkeleton /> : status === "error" ? <div className="empty-state"><span className="empty-icon"><Radio size={18} /></span><strong>Search is unavailable</strong><span>{error}</span><button onClick={() => setSearch(search + " ")}>Retry</button></div> : !sortedResults.length ? <div className="empty-state"><span className="empty-icon"><SearchIcon size={18} /></span><strong>No results for “{search}”</strong><span>Try a different spelling or search in another language.</span><button onClick={() => setSearch("")}>Clear search</button></div> : category === "Songs" ? <div className="search-results">{sortedResults.map((song, i) => <div className="result-row" key={song.youtubeVideoId}><span className="result-number">{String(i + 1).padStart(2, "0")}</span><Artwork src={song.cover} className="result-art" /><div><strong>{song.title}</strong><span>{song.artist} · YouTube</span></div><button onClick={() => playSong(song)} aria-label={'Play ' + song.title}><Play size={15} fill="currentColor" /></button><span>{song.duration}</span><MoreHorizontal size={18} /></div>)}</div> : <div className="category-results">{sortedResults.map((song) => <button key={song.youtubeVideoId} onClick={() => song.youtubeKind === "video" ? playSong(song) : undefined}><Artwork src={song.cover} className={category === "Artists" ? "artist-art" : "result-art"} /><span><strong>{song.title}</strong><small>{song.artist} · {category === "Artists" ? "Channel" : category === "Playlists" ? "Playlist" : "Album candidate"}</small></span><ChevronRight size={16} /></button>)}</div>}</MusicSection> : <><MusicSection title="Recent searches" link="Clear"><div className="search-chips"><button onClick={() => setSearch("Arijit Singh")}>Arijit Singh <Clock3 size={14} /></button><button onClick={() => setSearch("Punjabi hits")}>Punjabi hits <Clock3 size={14} /></button><button onClick={() => setSearch("Bollywood")}>Bollywood <Clock3 size={14} /></button></div></MusicSection><MusicSection title="Search safely" link=""><div className="search-guidance"><Radio size={18} /><span>Results come from the official YouTube player. VIBRA never downloads or extracts audio.</span></div></MusicSection><MusicSection title="Popular searches" link=""><div className="trending-grid"><span><b>01</b> Hindi songs</span><span><b>02</b> Bollywood music</span><span><b>03</b> Punjabi hits</span><span><b>04</b> Arijit Singh</span></div></MusicSection></>}</div>;
 }
+
+function SearchSkeleton() { return <div className="search-skeleton" aria-label="Loading search results"><i /><i /><i /><i /></div>; }
 
 function LibraryView({ liked, setShowPlayer, playSong }: { liked: boolean; setShowPlayer: (v: boolean) => void; playSong: (song: Song) => void }) {
   return <div className="page library-page"><section className="library-hero"><div className="library-spark"><Heart size={35} fill="currentColor" /></div><div><p className="overline">YOUR COLLECTION</p><h1>Your Library</h1><p>{liked ? "1 liked song" : "0 liked songs"} · 4 playlists · 28 albums</p></div></section><MusicSection title="Your music" link=""><div className="library-grid library-grid-four"><div className="library-card liked-card" onClick={() => { playSong(songs[0]); setShowPlayer(true); }}><div><Heart size={18} fill="currentColor" /><strong>Liked Songs</strong><span>{liked ? "1 song" : "0 songs"}</span></div><PlayButton /></div><div className="library-card library-info-card"><Clock3 size={20} /><strong>Recently Played</strong><span>12 tracks this week</span></div><div className="library-card library-info-card"><Download size={20} /><strong>Downloads</strong><span>Available offline</span></div><div className="library-card library-info-card"><ListMusic size={20} /><strong>Playlists</strong><span>4 playlists</span></div></div></MusicSection><MusicSection title="Playlists" link="See all"><div className="playlist-list library-list-grid"><PlaylistItem title="Late Night Drive" subtitle="VIBRA · 32 songs" cover={covers.coast} /><PlaylistItem title="Soft Focus" subtitle="VIBRA · 48 songs" cover={covers.blue} /><PlaylistItem title="Sunday Morning" subtitle="VIBRA · 24 songs" cover={covers.ocean} /></div></MusicSection><MusicSection title="Albums" link="See all"><div className="horizontal-cards">{songs.slice(0, 4).map((song) => <AlbumCard key={song.title} song={song} onPlay={() => playSong(song)} onOpen={() => { playSong(song); setShowPlayer(true); }} />)}</div></MusicSection><MusicSection title="Artists" link="See all"><div className="artist-row"><Artist name="Maggie Rogers" image={covers.face} /><Artist name="Bonobo" image={covers.ocean} /><Artist name="Lana Del Rey" image={covers.rose} /><Artist name="Jamie xx" image={covers.desert} /></div></MusicSection></div>;
