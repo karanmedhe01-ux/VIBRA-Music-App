@@ -74,3 +74,28 @@ nextjs-portal { display: none !important; }
 .spinner { width: 13px; height: 13px; display: block; border: 2px solid rgba(18,22,15,.35); border-top-color: #12160f; border-radius: 50%; animation: spin .7s linear infinite; }
 .spinner-dark { width: 20px; height: 20px; border-color: rgba(17,22,13,.3); border-top-color: #11160d; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+html { overscroll-behavior-x: none; }
+button, .album-card, .recent-row, .playlist-item, .library-card, .mood-pill { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+button { transition: color .18s ease, background-color .18s ease, border-color .18s ease, transform .18s ease, opacity .18s ease; }
+button:active { transform: scale(.97); }
+.nav-item, .listen-button, .hero-button, .mood-pill, .search-chips button, .library-tabs button, .back-button, .empty-state button { min-height: 40px; }
+.album-card:active, .recent-row:active, .playlist-item:active, .library-card:active { transform: scale(.985); }
+.screen-stage { animation: screen-enter .28s cubic-bezier(.2,.8,.2,1) both; }
+.full-player { animation: player-enter .32s cubic-bezier(.2,.8,.2,1) both; }
+.mini-player { animation: mini-enter .28s cubic-bezier(.2,.8,.2,1) both; transition: transform .25s ease, opacity .25s ease; bottom: calc(14px + env(safe-area-inset-bottom)); }
+.playback-status { display: flex; align-items: center; gap: 10px; max-width: 100%; }
+.playback-status > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.playback-status button { flex: 0 0 auto; min-height: 30px; padding: 5px 9px; border: 1px solid rgba(213,251,111,.35); border-radius: 5px; color: var(--accent); background: var(--accent-soft); font-size: 10px; }
+.empty-state { display: flex; align-items: center; flex-direction: column; gap: 8px; padding: 34px 20px; border: 1px dashed rgba(255,255,255,.12); border-radius: 8px; color: var(--muted); font-size: 12px; text-align: center; }
+.empty-state strong { color: var(--ink); font-size: 13px; font-weight: 550; }
+.empty-icon { display: grid; place-items: center; width: 38px; height: 38px; margin-bottom: 3px; border-radius: 50%; color: var(--accent); background: var(--accent-soft); }
+.empty-state button { margin-top: 5px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 5px; color: var(--ink); background: var(--panel-2); font-size: 11px; }
+.vibra-toast { position: fixed; z-index: 50; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 9px; min-width: 218px; padding: 12px 14px; overflow: hidden; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; color: var(--ink); background: rgba(30,31,36,.96); box-shadow: 0 14px 40px rgba(0,0,0,.4); backdrop-filter: blur(18px); font-size: 12px; transform: translateX(-50%); animation: toast-enter .24s cubic-bezier(.2,.8,.2,1) both; }
+.toast-dot { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px rgba(213,251,111,.7); }
+.vibra-toast i { position: absolute; right: 0; bottom: 0; left: 0; height: 2px; transform-origin: left; background: var(--accent); animation: toast-countdown 2s linear both; }
+@keyframes screen-enter { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes player-enter { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mini-enter { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toast-enter { from { opacity: 0; transform: translate(-50%, 10px) scale(.96); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+@keyframes toast-countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }

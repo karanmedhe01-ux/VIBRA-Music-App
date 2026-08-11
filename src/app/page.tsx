@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { App } from "@capacitor/app";
 import {
   Album,
   ArrowLeft,
@@ -114,6 +115,11 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [backToastVisible, setBackToastVisible] = useState(false);
+  const navigationStackRef = useRef<string[]>(["Home"]);
+  const backArmedRef = useRef(false);
+  const backTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playbackTapRef = useRef(0);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -199,6 +205,9 @@ export default function Home() {
   }, []);
 
   const togglePlayback = useCallback(() => {
+    const now = Date.now();
+    if (now - playbackTapRef.current < 280) return;
+    playbackTapRef.current = now;
     const audio = audioRef.current;
     if (!audio || !audio.src) {
       startSong(selectedSong);
@@ -232,6 +241,61 @@ export default function Home() {
   const nextSongRef = useRef(nextSong);
   nextSongRef.current = nextSong;
 
+  const goBack = useCallback(() => {
+    if (menuOpen) {
+      setMenuOpen(false);
+      return true;
+    }
+    if (showPlayer) {
+      setShowPlayer(false);
+      return true;
+    }
+    if (navigationStackRef.current.length > 1) {
+      const stack = navigationStackRef.current.slice(0, -1);
+      navigationStackRef.current = stack;
+      setActiveNav(stack[stack.length - 1] ?? "Home");
+      return true;
+    }
+    return false;
+  }, [menuOpen, showPlayer]);
+
+  const handleBackPress = useCallback(() => {
+    if (goBack()) return;
+    if (backArmedRef.current) {
+      backArmedRef.current = false;
+      setBackToastVisible(false);
+      if (backTimerRef.current) clearTimeout(backTimerRef.current);
+      void App.exitApp().catch(() => undefined);
+      return;
+    }
+    backArmedRef.current = true;
+    setBackToastVisible(true);
+    if (backTimerRef.current) clearTimeout(backTimerRef.current);
+    backTimerRef.current = setTimeout(() => {
+      backArmedRef.current = false;
+      setBackToastVisible(false);
+    }, 2000);
+  }, [goBack]);
+
+  useEffect(() => {
+    let pluginListener: { remove: () => Promise<void> } | null = null;
+    const registerBackButton = async () => {
+      try {
+        pluginListener = await App.addListener("backButton", handleBackPress);
+      } catch {
+        // The Capacitor App plugin is unavailable in a regular browser preview.
+      }
+    };
+    void registerBackButton();
+    const handleBrowserBack = () => handleBackPress();
+    window.addEventListener("popstate", handleBrowserBack);
+    return () => {
+      window.removeEventListener("popstate", handleBrowserBack);
+      if (backTimerRef.current) clearTimeout(backTimerRef.current);
+      void pluginListener?.remove();
+    };
+  }, [handleBackPress]);
+
   const seek = (nextTime: number) => {
     if (audioRef.current) {
       audioRef.current.currentTime = nextTime;
@@ -245,8 +309,17 @@ export default function Home() {
   );
 
   const navigate = (label: string) => {
+    if (label === activeNav) {
+      setMenuOpen(false);
+      return;
+    }
+    navigationStackRef.current = label === "Home"
+      ? ["Home"]
+      : [...navigationStackRef.current, label];
     setActiveNav(label);
     setShowPlayer(false);
+    setMenuOpen(false);
+    window.history.pushState({ vibra: true, screen: label }, "", window.location.href);
   };
 
   return (
@@ -290,22 +363,25 @@ export default function Home() {
           </div>
         </header>
 
-        {activeNav === "Search" ? (
-          <SearchView search={search} setSearch={setSearch} songs={filteredSongs} playSong={playSong} />
-        ) : activeNav === "Your Library" || activeNav === "Playlists" ? (
-          <LibraryView liked={liked} setShowPlayer={setShowPlayer} playSong={playSong} />
-        ) : activeNav === "Settings" ? (
-          <SettingsView />
-        ) : activeNav === "Discover" ? (
-          <DiscoverView playSong={playSong} />
-        ) : (
-          <HomeView playing={playing} setPlaying={setPlaying} liked={liked} setLiked={setLiked} playSong={playSong} setShowPlayer={setShowPlayer} />
-        )}
+        <div className="screen-stage" key={`${activeNav}-${showPlayer ? "player" : "browse"}`}>
+          {activeNav === "Search" ? (
+            <SearchView search={search} setSearch={setSearch} songs={filteredSongs} playSong={playSong} />
+          ) : activeNav === "Your Library" || activeNav === "Playlists" ? (
+            <LibraryView liked={liked} setShowPlayer={setShowPlayer} playSong={playSong} />
+          ) : activeNav === "Settings" ? (
+            <SettingsView />
+          ) : activeNav === "Discover" ? (
+            <DiscoverView playSong={playSong} />
+          ) : (
+            <HomeView playing={playing} setPlaying={setPlaying} liked={liked} setLiked={setLiked} playSong={playSong} setShowPlayer={setShowPlayer} />
+          )}
+        </div>
 
         {!showPlayer && <MiniPlayer song={selectedSong} playing={playing} liked={liked} setLiked={setLiked} togglePlayback={togglePlayback} setShowPlayer={setShowPlayer} currentTime={currentTime} durationSeconds={durationSeconds} isLoading={isLoading} playbackError={playbackError} nextSong={nextSong} />}
         {showPlayer && <FullPlayer song={selectedSong} playing={playing} togglePlayback={togglePlayback} liked={liked} setLiked={setLiked} close={() => setShowPlayer(false)} currentTime={currentTime} durationSeconds={durationSeconds} seek={seek} previousSong={previousSong} nextSong={nextSong} volume={volume} setVolume={setVolume} isLoading={isLoading} playbackError={playbackError} queue={queue} setQueue={setQueue} playSong={playSong} />}
       </main>
       {menuOpen && <div className="mobile-nav-popover"><button onClick={() => { navigate("Home"); setMenuOpen(false); }}>Home</button><button onClick={() => { navigate("Search"); setMenuOpen(false); }}>Search</button><button onClick={() => { navigate("Your Library"); setMenuOpen(false); }}>Library</button><button onClick={() => { navigate("Settings"); setMenuOpen(false); }}>Settings</button></div>}
+      {backToastVisible && <div className="vibra-toast" role="status" aria-live="polite"><span className="toast-dot" /><span>Press back again to exit</span><i /></div>}
     </div>
   );
 }
@@ -352,11 +428,11 @@ function MiniPlayer({ song, playing, liked, setLiked, togglePlayback, setShowPla
 function FullPlayer({ song, playing, togglePlayback, liked, setLiked, close, currentTime, durationSeconds, seek, previousSong, nextSong, volume, setVolume, isLoading, playbackError, queue, setQueue, playSong }: { song: Song; playing: boolean; togglePlayback: () => void; liked: boolean; setLiked: (v: boolean) => void; close: () => void; currentTime: number; durationSeconds: number; seek: (value: number) => void; previousSong: () => void; nextSong: () => void; volume: number; setVolume: (v: number) => void; isLoading: boolean; playbackError: string | null; queue: Song[]; setQueue: (songs: Song[]) => void; playSong: (song: Song) => void }) {
   const progress = durationSeconds ? Math.min(100, (currentTime / durationSeconds) * 100) : 0;
   const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
-  return <div className="full-player"><div className="player-top"><button onClick={close} className="back-button"><ArrowLeft size={20} /><span>Back to browsing</span></button><span>NOW PLAYING</span><button className="icon-button"><MoreHorizontal size={20} /></button></div><div className="player-body"><div className="player-art-wrap"><Artwork src={song.cover} className="player-art" /><div className="player-glow" /></div><div className="player-details"><div className="player-label">PLAYING FROM <span>Evening Mix</span></div><h1>{song.title}</h1><h3>{song.artist}</h3><div className="playback-status">{isLoading ? "Loading demo audio..." : playbackError ?? (playing ? "Now playing" : "Paused")}</div><div className="player-progress"><div className="progress-line" style={{ "--progress": `${progress}%` } as React.CSSProperties}><input type="range" min="0" max={durationSeconds || 1} step="0.1" value={Math.min(currentTime, durationSeconds || 1)} onChange={(event) => seek(Number(event.target.value))} aria-label="Seek through song" /></div><div><span>{formatTime(currentTime)}</span><span>{durationSeconds ? formatTime(durationSeconds) : song.duration}</span></div></div><div className="player-controls"><button aria-label="Shuffle"><Shuffle size={20} /></button><button onClick={previousSong} aria-label="Previous track"><SkipBack size={25} fill="currentColor" /></button><button className="player-play" onClick={togglePlayback} aria-label={playing ? "Pause" : "Play"}>{isLoading ? <span className="spinner spinner-dark" /> : playing ? <Pause size={25} fill="currentColor" /> : <Play size={25} fill="currentColor" />}</button><button onClick={nextSong} aria-label="Next track"><SkipForward size={25} fill="currentColor" /></button><button aria-label="Repeat"><Repeat2 size={20} /></button></div><div className="player-actions"><button className={liked ? "liked" : ""} onClick={() => setLiked(!liked)}><Heart size={19} fill={liked ? "currentColor" : "none"} /> Favorite</button><button><Plus size={19} /> Add to playlist</button><button><Share2 size={18} /> Share</button><button><Mic2 size={18} /> Lyrics</button><button><Clock3 size={18} /> Sleep timer</button></div><label className="player-volume"><Volume2 size={17} /><input type="range" min="0" max="1" step="0.01" value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label="Volume" /></label></div></div><div className="queue-panel"><div><span className="overline">UP NEXT</span><h3>Queue <span>{queue.length} songs</span></h3></div><button>View queue <ChevronRight size={15} /></button>{queue.filter((item) => item.audioUrl !== song.audioUrl).slice(0, 4).map((item) => <button className="queue-track" key={item.audioUrl} onClick={() => playSong(item)}><Artwork src={item.cover} className="queue-art" /><div><strong>{item.title}</strong><span>{item.artist}</span></div><span>{item.duration}</span></button>)}<button className="queue-add" onClick={() => setQueue([...queue, songs[(queue.length + 1) % songs.length]])}><Plus size={15} /> Add demo track to queue</button></div></div>;
+  return <div className="full-player"><div className="player-top"><button onClick={close} className="back-button"><ArrowLeft size={20} /><span>Back to browsing</span></button><span>NOW PLAYING</span><button className="icon-button"><MoreHorizontal size={20} /></button></div><div className="player-body"><div className="player-art-wrap"><Artwork src={song.cover} className="player-art" /><div className="player-glow" /></div><div className="player-details"><div className="player-label">PLAYING FROM <span>Evening Mix</span></div><h1>{song.title}</h1><h3>{song.artist}</h3><div className="playback-status">{isLoading ? "Loading demo audio..." : playbackError ? <><span>{playbackError}</span><button onClick={togglePlayback}>Retry</button></> : playing ? "Now playing" : "Paused"}</div><div className="player-progress"><div className="progress-line" style={{ "--progress": `${progress}%` } as React.CSSProperties}><input type="range" min="0" max={durationSeconds || 1} step="0.1" value={Math.min(currentTime, durationSeconds || 1)} onChange={(event) => seek(Number(event.target.value))} aria-label="Seek through song" /></div><div><span>{formatTime(currentTime)}</span><span>{durationSeconds ? formatTime(durationSeconds) : song.duration}</span></div></div><div className="player-controls"><button aria-label="Shuffle"><Shuffle size={20} /></button><button onClick={previousSong} aria-label="Previous track"><SkipBack size={25} fill="currentColor" /></button><button className="player-play" onClick={togglePlayback} aria-label={playing ? "Pause" : "Play"}>{isLoading ? <span className="spinner spinner-dark" /> : playing ? <Pause size={25} fill="currentColor" /> : <Play size={25} fill="currentColor" />}</button><button onClick={nextSong} aria-label="Next track"><SkipForward size={25} fill="currentColor" /></button><button aria-label="Repeat"><Repeat2 size={20} /></button></div><div className="player-actions"><button className={liked ? "liked" : ""} onClick={() => setLiked(!liked)}><Heart size={19} fill={liked ? "currentColor" : "none"} /> Favorite</button><button><Plus size={19} /> Add to playlist</button><button><Share2 size={18} /> Share</button><button><Mic2 size={18} /> Lyrics</button><button><Clock3 size={18} /> Sleep timer</button></div><label className="player-volume"><Volume2 size={17} /><input type="range" min="0" max="1" step="0.01" value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label="Volume" /></label></div></div><div className="queue-panel"><div><span className="overline">UP NEXT</span><h3>Queue <span>{queue.length} songs</span></h3></div><button>View queue <ChevronRight size={15} /></button>{queue.filter((item) => item.audioUrl !== song.audioUrl).slice(0, 4).map((item) => <button className="queue-track" key={item.audioUrl} onClick={() => playSong(item)}><Artwork src={item.cover} className="queue-art" /><div><strong>{item.title}</strong><span>{item.artist}</span></div><span>{item.duration}</span></button>)}<button className="queue-add" onClick={() => setQueue([...queue, songs[(queue.length + 1) % songs.length]])}><Plus size={15} /> Add demo track to queue</button></div></div>;
 }
 
 function SearchView({ search, setSearch, songs, playSong }: { search: string; setSearch: (v: string) => void; songs: Song[]; playSong: (song: Song) => void }) {
-  return <div className="page search-page"><div className="search-intro"><p className="overline accent-text">FIND YOUR FREQUENCY</p><h1>What are you<br /><em>in the mood for?</em></h1><div className="search-input"><SearchIcon size={21} /><input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search songs, artists, albums..." />{search && <button onClick={() => setSearch("")}><X size={18} /></button>}<span>⌘ K</span></div></div>{search ? <MusicSection title={`Results for “${search}”`} link=""><div className="search-results">{songs.length ? songs.map((song, i) => <div className="result-row" key={song.title}><span className="result-number">0{i + 1}</span><Artwork src={song.cover} className="result-art" /><div><strong>{song.title}</strong><span>{song.artist} · Single</span></div><button onClick={() => playSong(song)}><Play size={15} fill="currentColor" /></button><span>{song.duration}</span><MoreHorizontal size={18} /></div>) : <div className="empty-state">No music found. Try another search.</div>}</div></MusicSection> : <><MusicSection title="Recent searches" link="Clear"><div className="search-chips"><button>Late night drive <Clock3 size={14} /></button><button>RÜFÜS DU SOL <Clock3 size={14} /></button><button>Focus <Clock3 size={14} /></button></div></MusicSection><MusicSection title="Trending searches" link=""><div className="trending-grid"><span><b>01</b> Sabrina Carpenter</span><span><b>02</b> Fred again..</span><span><b>03</b> Charli xcx</span><span><b>04</b> New music friday</span></div></MusicSection><MusicSection title="Browse all" link=""><div className="browse-grid"><div>Pop <span>↗</span></div><div>Electronic <span>↗</span></div><div>Hip-hop <span>↗</span></div><div>R&B <span>↗</span></div></div></MusicSection></>}</div>;
+  return <div className="page search-page"><div className="search-intro"><p className="overline accent-text">FIND YOUR FREQUENCY</p><h1>What are you<br /><em>in the mood for?</em></h1><div className="search-input"><SearchIcon size={21} /><input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search songs, artists, albums..." />{search && <button onClick={() => setSearch("")}><X size={18} /></button>}<span>⌘ K</span></div></div>{search ? <MusicSection title={`Results for “${search}”`} link=""><div className="search-results">{songs.length ? songs.map((song, i) => <div className="result-row" key={song.title}><span className="result-number">0{i + 1}</span><Artwork src={song.cover} className="result-art" /><div><strong>{song.title}</strong><span>{song.artist} · Single</span></div><button onClick={() => playSong(song)}><Play size={15} fill="currentColor" /></button><span>{song.duration}</span><MoreHorizontal size={18} /></div>) : <div className="empty-state"><span className="empty-icon"><SearchIcon size={18} /></span><strong>No music found</strong><span>Try a different song, artist, or mood.</span><button onClick={() => setSearch("")}>Clear search</button></div>}</div></MusicSection> : <><MusicSection title="Recent searches" link="Clear"><div className="search-chips"><button>Late night drive <Clock3 size={14} /></button><button>RÜFÜS DU SOL <Clock3 size={14} /></button><button>Focus <Clock3 size={14} /></button></div></MusicSection><MusicSection title="Trending searches" link=""><div className="trending-grid"><span><b>01</b> Sabrina Carpenter</span><span><b>02</b> Fred again..</span><span><b>03</b> Charli xcx</span><span><b>04</b> New music friday</span></div></MusicSection><MusicSection title="Browse all" link=""><div className="browse-grid"><div>Pop <span>↗</span></div><div>Electronic <span>↗</span></div><div>Hip-hop <span>↗</span></div><div>R&B <span>↗</span></div></div></MusicSection></>}</div>;
 }
 
 function LibraryView({ liked, setShowPlayer, playSong }: { liked: boolean; setShowPlayer: (v: boolean) => void; playSong: (song: Song) => void }) {
