@@ -17,8 +17,17 @@ if [ -z "${JAVA_HOME:-}" ] && ! command -v java >/dev/null 2>&1; then
 fi
 
 cd "$ROOT_DIR"
+if [ -f "$ROOT_DIR/.attachments/VIBRA-debug.apk" ] && [ ! -f "$ROOT_DIR/public/VIBRA-debug.apk" ]; then
+  cp "$ROOT_DIR/.attachments/VIBRA-debug.apk" "$ROOT_DIR/public/VIBRA-debug.apk"
+fi
 bun run build:web
+# Keep the downloadable web APK out of the Android bundle to avoid recursive packaging.
+rm -f "$ROOT_DIR/out/VIBRA-debug.apk"
 bun x cap sync android
 ./android/gradlew -p android assembleDebug
+
+cp "$ROOT_DIR/android/app/build/outputs/apk/debug/app-debug.apk" "$ROOT_DIR/.attachments/VIBRA-debug.apk"
+cp "$ROOT_DIR/android/app/build/outputs/apk/debug/app-debug.apk" "$ROOT_DIR/public/VIBRA-debug.apk"
+cp "$ROOT_DIR/android/app/build/outputs/apk/debug/app-debug.apk" "$ROOT_DIR/out/VIBRA-debug.apk"
 
 printf '\nVIBRA debug APK: %s\n' "$ROOT_DIR/android/app/build/outputs/apk/debug/app-debug.apk"
