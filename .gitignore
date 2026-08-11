@@ -20,6 +20,14 @@ pnpm-lock.yaml
 .next
 .swc
 
+# Capacitor Android build output
+/android/.gradle/
+/android/build/
+/android/capacitor-cordova-android-plugins/build/
+/android/app/build/
+/.toolchain/
+*.apk
+
 # production
 /build
 /dist
