@@ -6,7 +6,7 @@ const loaderPath = require.resolve('@ideavo/webpack-tagger');
 const nextConfig: NextConfig = {
   output: 'export',
   env: {
-    NEXT_PUBLIC_YOUTUBE_DATA_API_KEY: process.env.YOUTUBE_DATA_API_KEY ?? '',
+    NEXT_PUBLIC_YOUTUBE_DATA_API_KEY: process.env.YOUTUBE_DATA_API_KEY || process.env.YOUTUBE_API_KEY || '',
   },
   images: {
     unoptimized: true,

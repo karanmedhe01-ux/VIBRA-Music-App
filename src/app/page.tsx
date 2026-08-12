@@ -1243,7 +1243,11 @@ const youtubeSearchCache = new Map<
 >();
 
 async function searchYouTube(query: string, category: string): Promise<Song[]> {
-  const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_DATA_API_KEY ?? "";
+  const apiKey =
+    process.env.NEXT_PUBLIC_YOUTUBE_DATA_API_KEY ||
+    (process.env as any).YOUTUBE_DATA_API_KEY ||
+    (process.env as any).YOUTUBE_API_KEY ||
+    "";
   if (!apiKey)
     throw new Error("YOUTUBE_DATA_API_KEY is not available to the app.");
   const cacheKey = category + ":" + query.trim().toLocaleLowerCase();
