@@ -113,6 +113,7 @@ export default function Home() {
   const [activeNav, setActiveNav] = useState("Home");
   const [playing, setPlaying] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [library, setLibrary] = useState<Song[]>([]);
   const [showPlayer, setShowPlayer] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
@@ -190,6 +191,13 @@ export default function Home() {
     command: ((name: string, args?: unknown[]) => void) | null,
   ) => {
     youtubeCommandRef.current = command;
+  };
+  const addToLibrary = (song: Song) => {
+    setLibrary((current) =>
+      current.some((item) => item.youtubeVideoId === song.youtubeVideoId)
+        ? current
+        : [...current, song]
+    );
   };
 
   const goBack = useCallback(() => {
@@ -385,12 +393,14 @@ export default function Home() {
               search={search}
               setSearch={setSearch}
               playSong={playSong}
+              addToLibrary={addToLibrary}
             />
           ) : activeNav === "Your Library" || activeNav === "Playlists" ? (
             <LibraryView
               liked={liked}
               setShowPlayer={setShowPlayer}
               playSong={playSong}
+              library={library}
             />
           ) : activeNav === "Settings" ? (
             <SettingsView />
@@ -1305,10 +1315,12 @@ function SearchView({
   search,
   setSearch,
   playSong,
+  addToLibrary,
 }: {
   search: string;
   setSearch: (v: string) => void;
   playSong: (song: Song) => void;
+  addToLibrary: (song: Song) => void;
 }) {
   const [category, setCategory] = useState("Songs");
   const [sort, setSort] = useState("Relevance");
@@ -1445,6 +1457,12 @@ function SearchView({
                   >
                     <Play size={15} fill="currentColor" />
                   </button>
+                  <button
+                    onClick={() => addToLibrary(song)}
+                    aria-label={"Add " + song.title + " to library"}
+                  >
+                    <Plus size={15} />
+                  </button>
                   <span>{song.duration}</span>
                   <MoreHorizontal size={18} />
                 </div>
@@ -1543,10 +1561,12 @@ function LibraryView({
   liked,
   setShowPlayer,
   playSong,
+  library,
 }: {
   liked: boolean;
   setShowPlayer: (v: boolean) => void;
   playSong: (song: Song) => void;
+  library: Song[];
 }) {
   return (
     <div className="page library-page">
@@ -1567,21 +1587,23 @@ function LibraryView({
           <div
             className="library-card liked-card"
             onClick={() => {
-              playSong(songs[0]);
-              setShowPlayer(true);
+              if (library.length > 0) {
+                playSong(library[0]);
+                setShowPlayer(true);
+              }
             }}
           >
             <div>
               <Heart size={18} fill="currentColor" />
               <strong>Liked Songs</strong>
-              <span>{liked ? "1 song" : "0 songs"}</span>
+              <span>{library.length} songs</span>
             </div>
             <PlayButton />
           </div>
           <div className="library-card library-info-card">
             <Clock3 size={20} />
             <strong>Recently Played</strong>
-            <span>12 tracks this week</span>
+            <span>{library.length} tracks this week</span>
           </div>
           <div className="library-card library-info-card">
             <Download size={20} />
@@ -1593,6 +1615,21 @@ function LibraryView({
             <strong>Playlists</strong>
             <span>4 playlists</span>
           </div>
+        </div>
+      </MusicSection>
+      <MusicSection title="Saved Songs" link="See all">
+        <div className="horizontal-cards">
+          {library.map((song) => (
+            <AlbumCard
+              key={song.youtubeVideoId}
+              song={song}
+              onPlay={() => playSong(song)}
+              onOpen={() => {
+                playSong(song);
+                setShowPlayer(true);
+              }}
+            />
+          ))}
         </div>
       </MusicSection>
       <MusicSection title="Playlists" link="See all">
