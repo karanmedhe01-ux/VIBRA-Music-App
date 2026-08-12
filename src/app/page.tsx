@@ -47,16 +47,12 @@ type Song = {
 const covers = {
   midnight:
     "https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=900&q=85",
-  rose:
-    "https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=700&q=85",
-  gold:
-    "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=700&q=85",
-  blue:
-    "https://images.unsplash.com/photo-1490730141103-6cac27aaab94?auto=format&fit=crop&w=700&q=85",
+  rose: "https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=700&q=85",
+  gold: "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=700&q=85",
+  blue: "https://images.unsplash.com/photo-1490730141103-6cac27aaab94?auto=format&fit=crop&w=700&q=85",
   ocean:
     "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=700&q=85",
-  face:
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=700&q=85",
+  face: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=700&q=85",
   desert:
     "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=700&q=85",
   coast:
@@ -92,16 +88,28 @@ function Artwork({ src, className = "" }: { src: string; className?: string }) {
   return <img src={src} alt="" className={`artwork ${className}`} />;
 }
 
-function PlayButton({ onClick, small = false }: { onClick?: () => void; small?: boolean }) {
+function PlayButton({
+  onClick,
+  small = false,
+}: {
+  onClick?: () => void;
+  small?: boolean;
+}) {
   return (
-    <button aria-label="Play" onClick={onClick} className={`play-button ${small ? "play-button-small" : ""}`}>
+    <button
+      aria-label="Play"
+      onClick={onClick}
+      className={`play-button ${small ? "play-button-small" : ""}`}
+    >
       <Play size={small ? 14 : 17} fill="currentColor" strokeWidth={0} />
     </button>
   );
 }
 
 export default function Home() {
-  const youtubeCommandRef = useRef<((command: string, args?: unknown[]) => void) | null>(null);
+  const youtubeCommandRef = useRef<
+    ((command: string, args?: unknown[]) => void) | null
+  >(null);
   const [activeNav, setActiveNav] = useState("Home");
   const [playing, setPlaying] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -122,18 +130,27 @@ export default function Home() {
   const backTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playbackTapRef = useRef(0);
 
-  const startSong = useCallback((song: Song, autoplay = true) => {
-    setSelectedSong(song);
-    setQueue((currentQueue) => currentQueue.some((item) => item.youtubeVideoId === song.youtubeVideoId) ? currentQueue : [...currentQueue, song]);
-    setCurrentTime(0);
-    setDurationSeconds(0);
-    setPlaybackError(null);
-    setIsLoading(true);
-    setPlaying(autoplay);
-    setShowPlayer(true);
-    const songIndex = queue.findIndex((item) => item.youtubeVideoId === song.youtubeVideoId);
-    setQueueIndex(songIndex >= 0 ? songIndex : 0);
-  }, [queue]);
+  const startSong = useCallback(
+    (song: Song, autoplay = true) => {
+      setSelectedSong(song);
+      setQueue((currentQueue) =>
+        currentQueue.some((item) => item.youtubeVideoId === song.youtubeVideoId)
+          ? currentQueue
+          : [...currentQueue, song],
+      );
+      setCurrentTime(0);
+      setDurationSeconds(0);
+      setPlaybackError(null);
+      setIsLoading(true);
+      setPlaying(autoplay);
+      setShowPlayer(true);
+      const songIndex = queue.findIndex(
+        (item) => item.youtubeVideoId === song.youtubeVideoId,
+      );
+      setQueueIndex(songIndex >= 0 ? songIndex : 0);
+    },
+    [queue],
+  );
 
   const togglePlayback = useCallback(() => {
     const now = Date.now();
@@ -169,7 +186,9 @@ export default function Home() {
     youtubeCommandRef.current?.("seekTo", [nextTime, true]);
     setCurrentTime(nextTime);
   };
-  const setYoutubeCommand = (command: ((name: string, args?: unknown[]) => void) | null) => {
+  const setYoutubeCommand = (
+    command: ((name: string, args?: unknown[]) => void) | null,
+  ) => {
     youtubeCommandRef.current = command;
   };
 
@@ -233,16 +252,27 @@ export default function Home() {
       setMenuOpen(false);
       return;
     }
-    navigationStackRef.current = label === "Home"
-      ? ["Home"]
-      : [...navigationStackRef.current, label];
+    navigationStackRef.current =
+      label === "Home" ? ["Home"] : [...navigationStackRef.current, label];
     setActiveNav(label);
     setShowPlayer(false);
     setMenuOpen(false);
-    window.history.pushState({ vibra: true, screen: label }, "", window.location.href);
+    window.history.pushState(
+      { vibra: true, screen: label },
+      "",
+      window.location.href,
+    );
   };
 
-  const activeTab = showPlayer ? "Player" : activeNav === "Search" ? "Search" : activeNav === "Your Library" || activeNav === "Playlists" ? "Library" : activeNav === "Profile" || activeNav === "Settings" ? "Profile" : "Home";
+  const activeTab = showPlayer
+    ? "Player"
+    : activeNav === "Search"
+      ? "Search"
+      : activeNav === "Your Library" || activeNav === "Playlists"
+        ? "Library"
+        : activeNav === "Profile" || activeNav === "Settings"
+          ? "Profile"
+          : "Home";
   const selectBottomTab = (tab: string) => {
     if (tab === "Player") {
       setShowPlayer(true);
@@ -255,12 +285,21 @@ export default function Home() {
   return (
     <div className="vibra-shell">
       <aside className="sidebar">
-        <div className="brand"><span className="brand-mark"><span /></span><span>VIBRA</span></div>
+        <div className="brand">
+          <span className="brand-mark">
+            <span />
+          </span>
+          <span>VIBRA</span>
+        </div>
         <div className="sidebar-section">
           <p className="eyebrow">Menu</p>
           <nav>
             {navItems.map(({ label, icon: Icon }) => (
-              <button key={label} onClick={() => navigate(label)} className={`nav-item ${activeNav === label ? "active" : ""}`}>
+              <button
+                key={label}
+                onClick={() => navigate(label)}
+                className={`nav-item ${activeNav === label ? "active" : ""}`}
+              >
                 <Icon size={18} strokeWidth={activeNav === label ? 2.4 : 1.8} />
                 <span>{label}</span>
                 {label === "Search" && <span className="shortcut">⌘ K</span>}
@@ -270,33 +309,89 @@ export default function Home() {
         </div>
         <div className="sidebar-section collection-section">
           <p className="eyebrow">Your Collection</p>
-          <button className="nav-item" onClick={() => navigate("Your Library")}><Heart size={18} /><span>Liked Songs</span></button>
-          <button className="nav-item" onClick={() => navigate("Playlists")}><ListMusic size={18} /><span>Playlists</span></button>
-          <button className="nav-item" onClick={() => navigate("Your Library")}><Clock3 size={18} /><span>Recently Played</span></button>
+          <button className="nav-item" onClick={() => navigate("Your Library")}>
+            <Heart size={18} />
+            <span>Liked Songs</span>
+          </button>
+          <button className="nav-item" onClick={() => navigate("Playlists")}>
+            <ListMusic size={18} />
+            <span>Playlists</span>
+          </button>
+          <button className="nav-item" onClick={() => navigate("Your Library")}>
+            <Clock3 size={18} />
+            <span>Recently Played</span>
+          </button>
         </div>
         <div className="sidebar-bottom">
-          <button className="nav-item" onClick={() => navigate("Settings")}><Settings size={18} /><span>Settings</span></button>
-          <div className="upgrade-card"><Sparkles size={18} /><strong>Go Premium</strong><span>Unlock your listening</span><button>Upgrade now <ChevronRight size={13} /></button></div>
-          <div className="profile-row"><div className="avatar">AL</div><div><strong>Alex Morgan</strong><span>VIBRA member</span></div><MoreHorizontal size={18} /></div>
+          <button className="nav-item" onClick={() => navigate("Settings")}>
+            <Settings size={18} />
+            <span>Settings</span>
+          </button>
+          <div className="upgrade-card">
+            <Sparkles size={18} />
+            <strong>Go Premium</strong>
+            <span>Unlock your listening</span>
+            <button>
+              Upgrade now <ChevronRight size={13} />
+            </button>
+          </div>
+          <div className="profile-row">
+            <div className="avatar">AL</div>
+            <div>
+              <strong>Alex Morgan</strong>
+              <span>VIBRA member</span>
+            </div>
+            <MoreHorizontal size={18} />
+          </div>
         </div>
       </aside>
 
       <main className="main-content">
         <header className="topbar">
-          <div className="mobile-brand"><span className="brand-mark"><span /></span>VIBRA</div>
-          <div className="breadcrumbs"><span>Music</span><ChevronRight size={14} /><strong>{activeNav}</strong></div>
+          <div className="mobile-brand">
+            <span className="brand-mark">
+              <span />
+            </span>
+            VIBRA
+          </div>
+          <div className="breadcrumbs">
+            <span>Music</span>
+            <ChevronRight size={14} />
+            <strong>{activeNav}</strong>
+          </div>
           <div className="top-actions">
-            <button className="icon-button"><Bell size={18} /></button>
-            <div className="top-profile"><div className="avatar avatar-small">AM</div><ChevronDown size={14} /></div>
-            <button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)}><Menu size={20} /></button>
+            <button className="icon-button">
+              <Bell size={18} />
+            </button>
+            <div className="top-profile">
+              <div className="avatar avatar-small">AM</div>
+              <ChevronDown size={14} />
+            </div>
+            <button
+              className="mobile-menu"
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              <Menu size={20} />
+            </button>
           </div>
         </header>
 
-        <div className="screen-stage" key={`${activeNav}-${showPlayer ? "player" : "browse"}`}>
+        <div
+          className="screen-stage"
+          key={`${activeNav}-${showPlayer ? "player" : "browse"}`}
+        >
           {activeNav === "Search" ? (
-            <SearchView search={search} setSearch={setSearch} playSong={playSong} />
+            <SearchView
+              search={search}
+              setSearch={setSearch}
+              playSong={playSong}
+            />
           ) : activeNav === "Your Library" || activeNav === "Playlists" ? (
-            <LibraryView liked={liked} setShowPlayer={setShowPlayer} playSong={playSong} />
+            <LibraryView
+              liked={liked}
+              setShowPlayer={setShowPlayer}
+              playSong={playSong}
+            />
           ) : activeNav === "Settings" ? (
             <SettingsView />
           ) : activeNav === "Profile" ? (
@@ -304,144 +399,1417 @@ export default function Home() {
           ) : activeNav === "Discover" ? (
             <DiscoverView playSong={playSong} />
           ) : (
-            <HomeView playing={playing} setPlaying={setPlaying} liked={liked} setLiked={setLiked} playSong={playSong} setShowPlayer={setShowPlayer} />
+            <HomeView
+              playing={playing}
+              setPlaying={setPlaying}
+              liked={liked}
+              setLiked={setLiked}
+              playSong={playSong}
+              setShowPlayer={setShowPlayer}
+            />
           )}
         </div>
 
-        {!showPlayer && selectedSong && <MiniPlayer song={selectedSong} playing={playing} liked={liked} setLiked={setLiked} togglePlayback={togglePlayback} setShowPlayer={setShowPlayer} currentTime={currentTime} durationSeconds={durationSeconds} isLoading={isLoading} playbackError={playbackError} nextSong={nextSong} />}
-        {showPlayer && selectedSong && <FullPlayer song={selectedSong} playing={playing} togglePlayback={togglePlayback} liked={liked} setLiked={setLiked} close={() => setShowPlayer(false)} currentTime={currentTime} durationSeconds={durationSeconds} seek={seek} previousSong={previousSong} nextSong={nextSong} volume={volume} setVolume={setVolume} isLoading={isLoading} playbackError={playbackError} queue={queue} setQueue={setQueue} playSong={playSong} setYoutubeCommand={setYoutubeCommand} setPlaying={setPlaying} setLoading={setIsLoading} setProgress={setCurrentTime} setDuration={setDurationSeconds} />}
+        {!showPlayer && selectedSong && (
+          <MiniPlayer
+            song={selectedSong}
+            playing={playing}
+            liked={liked}
+            setLiked={setLiked}
+            togglePlayback={togglePlayback}
+            setShowPlayer={setShowPlayer}
+            currentTime={currentTime}
+            durationSeconds={durationSeconds}
+            isLoading={isLoading}
+            playbackError={playbackError}
+            nextSong={nextSong}
+          />
+        )}
+        {showPlayer && selectedSong && (
+          <FullPlayer
+            song={selectedSong}
+            playing={playing}
+            togglePlayback={togglePlayback}
+            liked={liked}
+            setLiked={setLiked}
+            close={() => setShowPlayer(false)}
+            currentTime={currentTime}
+            durationSeconds={durationSeconds}
+            seek={seek}
+            previousSong={previousSong}
+            nextSong={nextSong}
+            volume={volume}
+            setVolume={setVolume}
+            isLoading={isLoading}
+            playbackError={playbackError}
+            queue={queue}
+            setQueue={setQueue}
+            playSong={playSong}
+            setYoutubeCommand={setYoutubeCommand}
+            setPlaying={setPlaying}
+            setLoading={setIsLoading}
+            setProgress={setCurrentTime}
+            setDuration={setDurationSeconds}
+          />
+        )}
       </main>
-      <nav className="bottom-nav" aria-label="Primary navigation">{bottomTabs.map(({ label, icon: Icon }) => <button key={label} onClick={() => selectBottomTab(label)} className={activeTab === label ? "active" : ""} aria-current={activeTab === label ? "page" : undefined}><span className="bottom-nav-icon"><Icon size={18} strokeWidth={activeTab === label ? 2.4 : 1.8} />{label === "Player" && playing && <i />}</span><span>{label}</span></button>)}</nav>
-      {menuOpen && <div className="mobile-nav-popover"><button onClick={() => { navigate("Home"); setMenuOpen(false); }}>Home</button><button onClick={() => { navigate("Search"); setMenuOpen(false); }}>Search</button><button onClick={() => { navigate("Your Library"); setMenuOpen(false); }}>Library</button><button onClick={() => { navigate("Settings"); setMenuOpen(false); }}>Settings</button></div>}
-      {backToastVisible && <div className="vibra-toast" role="status" aria-live="polite"><span className="toast-dot" /><span>Press back again to exit</span><i /></div>}
+      <nav className="bottom-nav" aria-label="Primary navigation">
+        {bottomTabs.map(({ label, icon: Icon }) => (
+          <button
+            key={label}
+            onClick={() => selectBottomTab(label)}
+            className={activeTab === label ? "active" : ""}
+            aria-current={activeTab === label ? "page" : undefined}
+          >
+            <span className="bottom-nav-icon">
+              <Icon size={18} strokeWidth={activeTab === label ? 2.4 : 1.8} />
+              {label === "Player" && playing && <i />}
+            </span>
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
+      {menuOpen && (
+        <div className="mobile-nav-popover">
+          <button
+            onClick={() => {
+              navigate("Home");
+              setMenuOpen(false);
+            }}
+          >
+            Home
+          </button>
+          <button
+            onClick={() => {
+              navigate("Search");
+              setMenuOpen(false);
+            }}
+          >
+            Search
+          </button>
+          <button
+            onClick={() => {
+              navigate("Your Library");
+              setMenuOpen(false);
+            }}
+          >
+            Library
+          </button>
+          <button
+            onClick={() => {
+              navigate("Settings");
+              setMenuOpen(false);
+            }}
+          >
+            Settings
+          </button>
+        </div>
+      )}
+      {backToastVisible && (
+        <div className="vibra-toast" role="status" aria-live="polite">
+          <span className="toast-dot" />
+          <span>Press back again to exit</span>
+          <i />
+        </div>
+      )}
     </div>
   );
 }
 
-function HomeView({ playing, setPlaying, liked, setLiked, playSong, setShowPlayer }: { playing: boolean; setPlaying: (v: boolean) => void; liked: boolean; setLiked: (v: boolean) => void; playSong: (song: Song) => void; setShowPlayer: (v: boolean) => void }) {
+function HomeView({
+  playing,
+  setPlaying,
+  liked,
+  setLiked,
+  playSong,
+  setShowPlayer,
+}: {
+  playing: boolean;
+  setPlaying: (v: boolean) => void;
+  liked: boolean;
+  setLiked: (v: boolean) => void;
+  playSong: (song: Song) => void;
+  setShowPlayer: (v: boolean) => void;
+}) {
   return (
     <div className="page home-page">
-      <section className="welcome-row"><div><p className="overline">Tuesday, August 12</p><h1>Good evening, Alex <span>✦</span></h1><p className="subtle">A little music for wherever you are.</p></div><button className="listen-button" onClick={() => { playSong(songs[0]); setShowPlayer(true); }}><Play size={15} fill="currentColor" /> Start listening</button></section>
-      <section className="hero-banner">
-        <div className="hero-copy"><p className="overline accent-text">VIBRA ORIGINAL • DAILY MIX</p><h2>Your evening<br /><em>in stereo.</em></h2><p>Dreamy electronics, warm vocals, and slow-burn grooves curated for your night.</p><button className="hero-button" onClick={() => playSong(songs[0])}>Play mix <Play size={14} fill="currentColor" /></button><div className="hero-dots"><span className="selected" /><span /><span /><span /></div></div>
-        <div className="hero-art"><Artwork src={covers.midnight} /><div className="hero-disc"><div>V</div></div><div className="floating-note note-one">♪</div><div className="floating-note note-two">♫</div></div>
+      <section className="welcome-row">
+        <div>
+          <p className="overline">Tuesday, August 12</p>
+          <h1>
+            Good evening, Alex <span>✦</span>
+          </h1>
+          <p className="subtle">A little music for wherever you are.</p>
+        </div>
+        <button
+          className="listen-button"
+          onClick={() => {
+            playSong(songs[0]);
+            setShowPlayer(true);
+          }}
+        >
+          <Play size={15} fill="currentColor" /> Start listening
+        </button>
       </section>
-      <section className="mood-row"><div className="section-heading"><h2>How are you feeling?</h2><span>Pick a mood</span></div><div className="moods">{moods.map(([name, color]) => <button key={name} className="mood-pill" style={{ "--mood": color } as React.CSSProperties}><span className="mood-icon">{name === "Chill" ? "◒" : name === "Focus" ? "◐" : name === "Workout" ? "↗" : name === "Party" ? "✦" : "☾"}</span>{name}</button>)}</div></section>
-      <MusicSection title="Made for you" link="See all"><div className="horizontal-cards">{songs.slice(0, 5).map((song, i) => <AlbumCard key={song.title} song={song} tag={i === 0 ? "For your night" : undefined} onPlay={() => { playSong(song); setPlaying(true); }} onOpen={() => setShowPlayer(true)} />)}</div></MusicSection>
-      <MusicSection title="Recently played" link="View history"><div className="recent-grid">{songs.slice(1, 5).map((song) => <RecentRow key={song.title} song={song} onPlay={() => { playSong(song); setPlaying(true); }} />)}</div></MusicSection>
-      <MusicSection title="Trending now" link="See all"><div className="horizontal-cards">{songs.slice(2).concat(songs.slice(0, 1)).map((song) => <AlbumCard key={`trend-${song.title}`} song={song} onPlay={() => { playSong(song); setPlaying(true); }} onOpen={() => setShowPlayer(true)} />)}</div></MusicSection>
-      <section className="split-sections"><MusicSection title="Popular playlists" link="Explore"><div className="playlist-list"><PlaylistItem title="Late Night Drive" subtitle="VIBRA · 32 songs" cover={covers.coast} /><PlaylistItem title="Soft Focus" subtitle="VIBRA · 48 songs" cover={covers.blue} /></div></MusicSection><MusicSection title="Daily mixes" link="Refresh"><div className="mix-list"><div className="mix-card mix-purple"><span>Mix 01</span><strong>Made for<br />your mood</strong><PlayButton small onClick={() => setPlaying(!playing)} /></div><div className="mix-card mix-orange"><span>Mix 02</span><strong>Fresh<br />discoveries</strong><PlayButton small onClick={() => setPlaying(!playing)} /></div></div></MusicSection></section>
-      <MusicSection title="Recommended artists" link="See all"><div className="artist-row"><Artist name="Maggie Rogers" image={covers.face} /><Artist name="Bonobo" image={covers.ocean} /><Artist name="Lana Del Rey" image={covers.rose} /><Artist name="Jamie xx" image={covers.desert} /><Artist name="Nujabes" image={covers.midnight} /></div></MusicSection>
+      <section className="hero-banner">
+        <div className="hero-copy">
+          <p className="overline accent-text">VIBRA ORIGINAL • DAILY MIX</p>
+          <h2>
+            Your evening
+            <br />
+            <em>in stereo.</em>
+          </h2>
+          <p>
+            Dreamy electronics, warm vocals, and slow-burn grooves curated for
+            your night.
+          </p>
+          <button className="hero-button" onClick={() => playSong(songs[0])}>
+            Play mix <Play size={14} fill="currentColor" />
+          </button>
+          <div className="hero-dots">
+            <span className="selected" />
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+        <div className="hero-art">
+          <Artwork src={covers.midnight} />
+          <div className="hero-disc">
+            <div>V</div>
+          </div>
+          <div className="floating-note note-one">♪</div>
+          <div className="floating-note note-two">♫</div>
+        </div>
+      </section>
+      <section className="mood-row">
+        <div className="section-heading">
+          <h2>How are you feeling?</h2>
+          <span>Pick a mood</span>
+        </div>
+        <div className="moods">
+          {moods.map(([name, color]) => (
+            <button
+              key={name}
+              className="mood-pill"
+              style={{ "--mood": color } as React.CSSProperties}
+            >
+              <span className="mood-icon">
+                {name === "Chill"
+                  ? "◒"
+                  : name === "Focus"
+                    ? "◐"
+                    : name === "Workout"
+                      ? "↗"
+                      : name === "Party"
+                        ? "✦"
+                        : "☾"}
+              </span>
+              {name}
+            </button>
+          ))}
+        </div>
+      </section>
+      <MusicSection title="Made for you" link="See all">
+        <div className="horizontal-cards">
+          {songs.slice(0, 5).map((song, i) => (
+            <AlbumCard
+              key={song.title}
+              song={song}
+              tag={i === 0 ? "For your night" : undefined}
+              onPlay={() => {
+                playSong(song);
+                setPlaying(true);
+              }}
+              onOpen={() => setShowPlayer(true)}
+            />
+          ))}
+        </div>
+      </MusicSection>
+      <MusicSection title="Recently played" link="View history">
+        <div className="recent-grid">
+          {songs.slice(1, 5).map((song) => (
+            <RecentRow
+              key={song.title}
+              song={song}
+              onPlay={() => {
+                playSong(song);
+                setPlaying(true);
+              }}
+            />
+          ))}
+        </div>
+      </MusicSection>
+      <MusicSection title="Trending now" link="See all">
+        <div className="horizontal-cards">
+          {songs
+            .slice(2)
+            .concat(songs.slice(0, 1))
+            .map((song) => (
+              <AlbumCard
+                key={`trend-${song.title}`}
+                song={song}
+                onPlay={() => {
+                  playSong(song);
+                  setPlaying(true);
+                }}
+                onOpen={() => setShowPlayer(true)}
+              />
+            ))}
+        </div>
+      </MusicSection>
+      <section className="split-sections">
+        <MusicSection title="Popular playlists" link="Explore">
+          <div className="playlist-list">
+            <PlaylistItem
+              title="Late Night Drive"
+              subtitle="VIBRA · 32 songs"
+              cover={covers.coast}
+            />
+            <PlaylistItem
+              title="Soft Focus"
+              subtitle="VIBRA · 48 songs"
+              cover={covers.blue}
+            />
+          </div>
+        </MusicSection>
+        <MusicSection title="Daily mixes" link="Refresh">
+          <div className="mix-list">
+            <div className="mix-card mix-purple">
+              <span>Mix 01</span>
+              <strong>
+                Made for
+                <br />
+                your mood
+              </strong>
+              <PlayButton small onClick={() => setPlaying(!playing)} />
+            </div>
+            <div className="mix-card mix-orange">
+              <span>Mix 02</span>
+              <strong>
+                Fresh
+                <br />
+                discoveries
+              </strong>
+              <PlayButton small onClick={() => setPlaying(!playing)} />
+            </div>
+          </div>
+        </MusicSection>
+      </section>
+      <MusicSection title="Recommended artists" link="See all">
+        <div className="artist-row">
+          <Artist name="Maggie Rogers" image={covers.face} />
+          <Artist name="Bonobo" image={covers.ocean} />
+          <Artist name="Lana Del Rey" image={covers.rose} />
+          <Artist name="Jamie xx" image={covers.desert} />
+          <Artist name="Nujabes" image={covers.midnight} />
+        </div>
+      </MusicSection>
       <div className="bottom-space" />
     </div>
   );
 }
 
-function MusicSection({ title, link, children }: { title: string; link: string; children: React.ReactNode }) {
-  return <section className="music-section"><div className="section-heading"><h2>{title}</h2><button>{link} <ChevronRight size={15} /></button></div>{children}</section>;
+function MusicSection({
+  title,
+  link,
+  children,
+}: {
+  title: string;
+  link: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="music-section">
+      <div className="section-heading">
+        <h2>{title}</h2>
+        <button>
+          {link} <ChevronRight size={15} />
+        </button>
+      </div>
+      {children}
+    </section>
+  );
 }
 
-function AlbumCard({ song, tag, onPlay, onOpen }: { song: Song; tag?: string; onPlay: () => void; onOpen: () => void }) {
-  return <article className="album-card"><div className="album-cover-wrap" onClick={onOpen}><Artwork src={song.cover} /><button className="cover-play" onClick={(e) => { e.stopPropagation(); onPlay(); }}><Play size={17} fill="currentColor" /></button>{tag && <span className="cover-tag">{tag}</span>}</div><div className="card-title">{song.title}</div><div className="card-artist">{song.artist}</div></article>;
+function AlbumCard({
+  song,
+  tag,
+  onPlay,
+  onOpen,
+}: {
+  song: Song;
+  tag?: string;
+  onPlay: () => void;
+  onOpen: () => void;
+}) {
+  return (
+    <article className="album-card">
+      <div className="album-cover-wrap" onClick={onOpen}>
+        <Artwork src={song.cover} />
+        <button
+          className="cover-play"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPlay();
+          }}
+        >
+          <Play size={17} fill="currentColor" />
+        </button>
+        {tag && <span className="cover-tag">{tag}</span>}
+      </div>
+      <div className="card-title">{song.title}</div>
+      <div className="card-artist">{song.artist}</div>
+    </article>
+  );
 }
 
 function RecentRow({ song, onPlay }: { song: Song; onPlay: () => void }) {
-  return <div className="recent-row"><Artwork src={song.cover} className="recent-art" /><div className="recent-info"><strong>{song.title}</strong><span>{song.artist}</span></div><button className="row-play" onClick={onPlay}><Play size={15} fill="currentColor" /></button><span className="duration">{song.duration}</span><button className="more-button"><Ellipsis size={18} /></button></div>;
+  return (
+    <div className="recent-row">
+      <Artwork src={song.cover} className="recent-art" />
+      <div className="recent-info">
+        <strong>{song.title}</strong>
+        <span>{song.artist}</span>
+      </div>
+      <button className="row-play" onClick={onPlay}>
+        <Play size={15} fill="currentColor" />
+      </button>
+      <span className="duration">{song.duration}</span>
+      <button className="more-button">
+        <Ellipsis size={18} />
+      </button>
+    </div>
+  );
 }
 
-function PlaylistItem({ title, subtitle, cover }: { title: string; subtitle: string; cover: string }) { return <div className="playlist-item"><Artwork src={cover} className="playlist-art" /><div><strong>{title}</strong><span>{subtitle}</span></div><MoreHorizontal size={18} /></div>; }
-function Artist({ name, image }: { name: string; image: string }) { return <div className="artist"><Artwork src={image} className="artist-art" /><strong>{name}</strong><span>Artist</span></div>; }
-
-function MiniPlayer({ song, playing, liked, setLiked, togglePlayback, setShowPlayer, currentTime, durationSeconds, isLoading, playbackError, nextSong }: { song: Song; playing: boolean; liked: boolean; setLiked: (v: boolean) => void; togglePlayback: () => void; setShowPlayer: (v: boolean) => void; currentTime: number; durationSeconds: number; isLoading: boolean; playbackError: string | null; nextSong: () => void }) {
-  const progress = durationSeconds ? `${Math.min(100, (currentTime / durationSeconds) * 100)}%` : "0%";
-  return <div className="mini-player"><div className="mini-song" onClick={() => setShowPlayer(true)}><Artwork src={song.cover} className="mini-art" /><div><strong>{song.title}</strong><span>{song.artist}</span></div></div><div className="mini-controls"><button onClick={togglePlayback} className="mini-main" aria-label={playing ? "Pause" : "Play"}>{isLoading ? <span className="spinner" /> : playing ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}</button><button onClick={nextSong} aria-label="Next track"><SkipForward size={17} /></button></div><div className={`mini-progress ${playbackError ? "has-error" : ""}`} title={playbackError ?? (playing ? "Playing" : "Paused")}><span style={{ width: progress }} /><i style={{ left: progress }} /></div><button className={`mini-heart ${liked ? "liked" : ""}`} onClick={() => setLiked(!liked)}><Heart size={18} fill={liked ? "currentColor" : "none"} /></button><button className="queue-button" onClick={() => setShowPlayer(true)}><ListMusic size={18} /></button></div>;
+function PlaylistItem({
+  title,
+  subtitle,
+  cover,
+}: {
+  title: string;
+  subtitle: string;
+  cover: string;
+}) {
+  return (
+    <div className="playlist-item">
+      <Artwork src={cover} className="playlist-art" />
+      <div>
+        <strong>{title}</strong>
+        <span>{subtitle}</span>
+      </div>
+      <MoreHorizontal size={18} />
+    </div>
+  );
+}
+function Artist({ name, image }: { name: string; image: string }) {
+  return (
+    <div className="artist">
+      <Artwork src={image} className="artist-art" />
+      <strong>{name}</strong>
+      <span>Artist</span>
+    </div>
+  );
 }
 
-function FullPlayer({ song, playing, togglePlayback, liked, setLiked, close, currentTime, durationSeconds, seek, previousSong, nextSong, volume, setVolume, isLoading, playbackError, queue, setQueue, playSong, setYoutubeCommand, setPlaying, setLoading, setProgress, setDuration }: { song: Song; playing: boolean; togglePlayback: () => void; liked: boolean; setLiked: (v: boolean) => void; close: () => void; currentTime: number; durationSeconds: number; seek: (value: number) => void; previousSong: () => void; nextSong: () => void; volume: number; setVolume: (v: number) => void; isLoading: boolean; playbackError: string | null; queue: Song[]; setQueue: (songs: Song[]) => void; playSong: (song: Song) => void; setYoutubeCommand: (command: ((name: string, args?: unknown[]) => void) | null) => void; setPlaying: (v: boolean) => void; setLoading: (v: boolean) => void; setProgress: (v: number) => void; setDuration: (v: number) => void }) {
-  const progress = durationSeconds ? Math.min(100, (currentTime / durationSeconds) * 100) : 0;
-  const formatTime = (seconds: number) => String(Math.floor(seconds / 60)) + ":" + String(Math.floor(seconds % 60)).padStart(2, "0");
-  return <div className="full-player"><div className="player-top"><button onClick={close} className="back-button"><ArrowLeft size={20} /><span>Back to browsing</span></button><span>NOW PLAYING</span><button className="icon-button"><MoreHorizontal size={20} /></button></div><div className="player-body"><div className="player-art-wrap youtube-art-wrap"><YouTubePlayer videoId={song.youtubeVideoId} volume={volume} setCommand={setYoutubeCommand} setPlaying={setPlaying} setLoading={setLoading} setProgress={setProgress} setDuration={setDuration} onEnded={nextSong} onError={(message) => { setLoading(false); setPlaying(false); }} /></div><div className="player-details"><div className="player-label">PLAYING FROM <span>YouTube Music</span></div><h1>{song.title}</h1><h3>{song.artist}</h3><div className="playback-status">{isLoading ? "Loading official YouTube player..." : playbackError ? <><span>{playbackError}</span><button onClick={togglePlayback}>Retry</button></> : playing ? "Now playing" : "Paused"}</div><div className="player-progress"><div className="progress-line" style={{ "--progress": progress + "%" } as React.CSSProperties}><input type="range" min="0" max={durationSeconds || 1} step="0.1" value={Math.min(currentTime, durationSeconds || 1)} onChange={(event) => seek(Number(event.target.value))} aria-label="Seek through song" /></div><div><span>{formatTime(currentTime)}</span><span>{durationSeconds ? formatTime(durationSeconds) : "—"}</span></div></div><div className="player-controls"><button aria-label="Shuffle"><Shuffle size={20} /></button><button onClick={previousSong} aria-label="Previous track"><SkipBack size={25} fill="currentColor" /></button><button className="player-play" onClick={togglePlayback} aria-label={playing ? "Pause" : "Play"}>{isLoading ? <span className="spinner spinner-dark" /> : playing ? <Pause size={25} fill="currentColor" /> : <Play size={25} fill="currentColor" />}</button><button onClick={nextSong} aria-label="Next track"><SkipForward size={25} fill="currentColor" /></button><button aria-label="Repeat"><Repeat2 size={20} /></button></div><div className="player-actions"><button className={liked ? "liked" : ""} onClick={() => setLiked(!liked)}><Heart size={19} fill={liked ? "currentColor" : "none"} /> Favorite</button><button><Plus size={19} /> Add to playlist</button><button><Share2 size={18} /> Share</button><button><Mic2 size={18} /> Official player</button><button><Clock3 size={18} /> Sleep timer</button></div><label className="player-volume"><Volume2 size={17} /><input type="range" min="0" max="1" step="0.01" value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label="Volume" /></label></div></div><div className="queue-panel"><div><span className="overline">UP NEXT</span><h3>Queue <span>{queue.length} songs</span></h3></div><button>View queue <ChevronRight size={15} /></button>{queue.filter((item) => item.youtubeVideoId !== song.youtubeVideoId).slice(0, 4).map((item) => <button className="queue-track" key={item.youtubeVideoId} onClick={() => playSong(item)}><Artwork src={item.cover} className="queue-art" /><div><strong>{item.title}</strong><span>{item.artist}</span></div><span>{item.duration ?? "YouTube"}</span></button>)}<button className="queue-add" onClick={() => setQueue([...queue])}><Plus size={15} /> Queue is managed from Search</button></div></div>;
+function MiniPlayer({
+  song,
+  playing,
+  liked,
+  setLiked,
+  togglePlayback,
+  setShowPlayer,
+  currentTime,
+  durationSeconds,
+  isLoading,
+  playbackError,
+  nextSong,
+}: {
+  song: Song;
+  playing: boolean;
+  liked: boolean;
+  setLiked: (v: boolean) => void;
+  togglePlayback: () => void;
+  setShowPlayer: (v: boolean) => void;
+  currentTime: number;
+  durationSeconds: number;
+  isLoading: boolean;
+  playbackError: string | null;
+  nextSong: () => void;
+}) {
+  const progress = durationSeconds
+    ? `${Math.min(100, (currentTime / durationSeconds) * 100)}%`
+    : "0%";
+  return (
+    <div className="mini-player">
+      <div className="mini-song" onClick={() => setShowPlayer(true)}>
+        <Artwork src={song.cover} className="mini-art" />
+        <div>
+          <strong>{song.title}</strong>
+          <span>{song.artist}</span>
+        </div>
+      </div>
+      <div className="mini-controls">
+        <button
+          onClick={togglePlayback}
+          className="mini-main"
+          aria-label={playing ? "Pause" : "Play"}
+        >
+          {isLoading ? (
+            <span className="spinner" />
+          ) : playing ? (
+            <Pause size={16} fill="currentColor" />
+          ) : (
+            <Play size={16} fill="currentColor" />
+          )}
+        </button>
+        <button onClick={nextSong} aria-label="Next track">
+          <SkipForward size={17} />
+        </button>
+      </div>
+      <div
+        className={`mini-progress ${playbackError ? "has-error" : ""}`}
+        title={playbackError ?? (playing ? "Playing" : "Paused")}
+      >
+        <span style={{ width: progress }} />
+        <i style={{ left: progress }} />
+      </div>
+      <button
+        className={`mini-heart ${liked ? "liked" : ""}`}
+        onClick={() => setLiked(!liked)}
+      >
+        <Heart size={18} fill={liked ? "currentColor" : "none"} />
+      </button>
+      <button className="queue-button" onClick={() => setShowPlayer(true)}>
+        <ListMusic size={18} />
+      </button>
+    </div>
+  );
 }
 
-function YouTubePlayer({ videoId, volume, setCommand, setPlaying, setLoading, setProgress, setDuration, onEnded, onError }: { videoId: string; volume: number; setCommand: (command: ((name: string, args?: unknown[]) => void) | null) => void; setPlaying: (v: boolean) => void; setLoading: (v: boolean) => void; setProgress: (v: number) => void; setDuration: (v: number) => void; onEnded: () => void; onError: (message: string) => void }) {
+function FullPlayer({
+  song,
+  playing,
+  togglePlayback,
+  liked,
+  setLiked,
+  close,
+  currentTime,
+  durationSeconds,
+  seek,
+  previousSong,
+  nextSong,
+  volume,
+  setVolume,
+  isLoading,
+  playbackError,
+  queue,
+  setQueue,
+  playSong,
+  setYoutubeCommand,
+  setPlaying,
+  setLoading,
+  setProgress,
+  setDuration,
+}: {
+  song: Song;
+  playing: boolean;
+  togglePlayback: () => void;
+  liked: boolean;
+  setLiked: (v: boolean) => void;
+  close: () => void;
+  currentTime: number;
+  durationSeconds: number;
+  seek: (value: number) => void;
+  previousSong: () => void;
+  nextSong: () => void;
+  volume: number;
+  setVolume: (v: number) => void;
+  isLoading: boolean;
+  playbackError: string | null;
+  queue: Song[];
+  setQueue: (songs: Song[]) => void;
+  playSong: (song: Song) => void;
+  setYoutubeCommand: (
+    command: ((name: string, args?: unknown[]) => void) | null,
+  ) => void;
+  setPlaying: (v: boolean) => void;
+  setLoading: (v: boolean) => void;
+  setProgress: (v: number) => void;
+  setDuration: (v: number) => void;
+}) {
+  const progress = durationSeconds
+    ? Math.min(100, (currentTime / durationSeconds) * 100)
+    : 0;
+  const formatTime = (seconds: number) =>
+    String(Math.floor(seconds / 60)) +
+    ":" +
+    String(Math.floor(seconds % 60)).padStart(2, "0");
+  return (
+    <div className="full-player">
+      <div className="player-top">
+        <button onClick={close} className="back-button">
+          <ArrowLeft size={20} />
+          <span>Back to browsing</span>
+        </button>
+        <span>NOW PLAYING</span>
+        <button className="icon-button">
+          <MoreHorizontal size={20} />
+        </button>
+      </div>
+      <div className="player-body">
+        <div className="player-art-wrap youtube-art-wrap">
+          <YouTubePlayer
+            videoId={song.youtubeVideoId}
+            volume={volume}
+            setCommand={setYoutubeCommand}
+            setPlaying={setPlaying}
+            setLoading={setLoading}
+            setProgress={setProgress}
+            setDuration={setDuration}
+            onEnded={nextSong}
+            onError={(message) => {
+              setLoading(false);
+              setPlaying(false);
+            }}
+          />
+        </div>
+        <div className="player-details">
+          <div className="player-label">
+            PLAYING FROM <span>YouTube Music</span>
+          </div>
+          <h1>{song.title}</h1>
+          <h3>{song.artist}</h3>
+          <div className="playback-status">
+            {isLoading ? (
+              "Loading official YouTube player..."
+            ) : playbackError ? (
+              <>
+                <span>{playbackError}</span>
+                <button onClick={togglePlayback}>Retry</button>
+              </>
+            ) : playing ? (
+              "Now playing"
+            ) : (
+              "Paused"
+            )}
+          </div>
+          <div className="player-progress">
+            <div
+              className="progress-line"
+              style={{ "--progress": progress + "%" } as React.CSSProperties}
+            >
+              <input
+                type="range"
+                min="0"
+                max={durationSeconds || 1}
+                step="0.1"
+                value={Math.min(currentTime, durationSeconds || 1)}
+                onChange={(event) => seek(Number(event.target.value))}
+                aria-label="Seek through song"
+              />
+            </div>
+            <div>
+              <span>{formatTime(currentTime)}</span>
+              <span>{durationSeconds ? formatTime(durationSeconds) : "—"}</span>
+            </div>
+          </div>
+          <div className="player-controls">
+            <button aria-label="Shuffle">
+              <Shuffle size={20} />
+            </button>
+            <button onClick={previousSong} aria-label="Previous track">
+              <SkipBack size={25} fill="currentColor" />
+            </button>
+            <button
+              className="player-play"
+              onClick={togglePlayback}
+              aria-label={playing ? "Pause" : "Play"}
+            >
+              {isLoading ? (
+                <span className="spinner spinner-dark" />
+              ) : playing ? (
+                <Pause size={25} fill="currentColor" />
+              ) : (
+                <Play size={25} fill="currentColor" />
+              )}
+            </button>
+            <button onClick={nextSong} aria-label="Next track">
+              <SkipForward size={25} fill="currentColor" />
+            </button>
+            <button aria-label="Repeat">
+              <Repeat2 size={20} />
+            </button>
+          </div>
+          <div className="player-actions">
+            <button
+              className={liked ? "liked" : ""}
+              onClick={() => setLiked(!liked)}
+            >
+              <Heart size={19} fill={liked ? "currentColor" : "none"} />{" "}
+              Favorite
+            </button>
+            <button>
+              <Plus size={19} /> Add to playlist
+            </button>
+            <button>
+              <Share2 size={18} /> Share
+            </button>
+            <button>
+              <Mic2 size={18} /> Official player
+            </button>
+            <button>
+              <Clock3 size={18} /> Sleep timer
+            </button>
+          </div>
+          <label className="player-volume">
+            <Volume2 size={17} />
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={volume}
+              onChange={(event) => setVolume(Number(event.target.value))}
+              aria-label="Volume"
+            />
+          </label>
+        </div>
+      </div>
+      <div className="queue-panel">
+        <div>
+          <span className="overline">UP NEXT</span>
+          <h3>
+            Queue <span>{queue.length} songs</span>
+          </h3>
+        </div>
+        <button>
+          View queue <ChevronRight size={15} />
+        </button>
+        {queue
+          .filter((item) => item.youtubeVideoId !== song.youtubeVideoId)
+          .slice(0, 4)
+          .map((item) => (
+            <button
+              className="queue-track"
+              key={item.youtubeVideoId}
+              onClick={() => playSong(item)}
+            >
+              <Artwork src={item.cover} className="queue-art" />
+              <div>
+                <strong>{item.title}</strong>
+                <span>{item.artist}</span>
+              </div>
+              <span>{item.duration ?? "YouTube"}</span>
+            </button>
+          ))}
+        <button className="queue-add" onClick={() => setQueue([...queue])}>
+          <Plus size={15} /> Queue is managed from Search
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function YouTubePlayer({
+  videoId,
+  volume,
+  setCommand,
+  setPlaying,
+  setLoading,
+  setProgress,
+  setDuration,
+  onEnded,
+  onError,
+}: {
+  videoId: string;
+  volume: number;
+  setCommand: (
+    command: ((name: string, args?: unknown[]) => void) | null,
+  ) => void;
+  setPlaying: (v: boolean) => void;
+  setLoading: (v: boolean) => void;
+  setProgress: (v: number) => void;
+  setDuration: (v: number) => void;
+  onEnded: () => void;
+  onError: (message: string) => void;
+}) {
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   useEffect(() => {
-    const win = window as typeof window & { YT?: { Player: new (element: HTMLElement, options: any) => any }; onYouTubeIframeAPIReady?: () => void };
+    const win = window as typeof window & {
+      YT?: { Player: new (element: HTMLElement, options: any) => any };
+      onYouTubeIframeAPIReady?: () => void;
+    };
     let interval: ReturnType<typeof setInterval> | null = null;
     let cancelled = false;
     const createPlayer = () => {
       if (cancelled || !hostRef.current || !win.YT?.Player) return;
-      playerRef.current = new win.YT.Player(hostRef.current, { videoId, playerVars: { autoplay: 1, controls: 1, playsinline: 1, rel: 0, modestbranding: 1, origin: window.location.origin }, events: { onReady: () => { setCommand((name, args = []) => { const method = playerRef.current?.[name]; if (typeof method === "function") method.apply(playerRef.current, args); }); playerRef.current?.setVolume?.(volume * 100); setDuration(playerRef.current?.getDuration?.() ?? 0); setLoading(false); interval = setInterval(() => { if (playerRef.current) { setProgress(playerRef.current.getCurrentTime?.() ?? 0); setDuration(playerRef.current.getDuration?.() ?? 0); } }, 500); }, onStateChange: (event: { data: number }) => { if (event.data === 1) { setPlaying(true); setLoading(false); } else if (event.data === 2) setPlaying(false); else if (event.data === 3) setLoading(true); else if (event.data === 0) { setPlaying(false); onEnded(); } }, onError: (event: { data: number }) => onError("YouTube player error (" + event.data + ").") } });
+      playerRef.current = new win.YT.Player(hostRef.current, {
+        videoId,
+        playerVars: {
+          autoplay: 1,
+          controls: 1,
+          playsinline: 1,
+          rel: 0,
+          modestbranding: 1,
+          origin: window.location.origin,
+        },
+        events: {
+          onReady: () => {
+            setCommand((name, args = []) => {
+              const method = playerRef.current?.[name];
+              if (typeof method === "function")
+                method.apply(playerRef.current, args);
+            });
+            playerRef.current?.setVolume?.(volume * 100);
+            setDuration(playerRef.current?.getDuration?.() ?? 0);
+            setLoading(false);
+            interval = setInterval(() => {
+              if (playerRef.current) {
+                setProgress(playerRef.current.getCurrentTime?.() ?? 0);
+                setDuration(playerRef.current.getDuration?.() ?? 0);
+              }
+            }, 500);
+          },
+          onStateChange: (event: { data: number }) => {
+            if (event.data === 1) {
+              setPlaying(true);
+              setLoading(false);
+            } else if (event.data === 2) setPlaying(false);
+            else if (event.data === 3) setLoading(true);
+            else if (event.data === 0) {
+              setPlaying(false);
+              onEnded();
+            }
+          },
+          onError: (event: { data: number }) =>
+            onError("YouTube player error (" + event.data + ")."),
+        },
+      });
     };
     if (win.YT?.Player) createPlayer();
     else {
-      let script = document.querySelector<HTMLScriptElement>("script[data-vibra-youtube]");
-      if (!script) { script = document.createElement("script"); script.src = "https://www.youtube.com/iframe_api"; script.async = true; script.dataset.vibraYoutube = "true"; document.head.appendChild(script); }
+      let script = document.querySelector<HTMLScriptElement>(
+        "script[data-vibra-youtube]",
+      );
+      if (!script) {
+        script = document.createElement("script");
+        script.src = "https://www.youtube.com/iframe_api";
+        script.async = true;
+        script.dataset.vibraYoutube = "true";
+        document.head.appendChild(script);
+      }
       const previousReady = win.onYouTubeIframeAPIReady;
-      win.onYouTubeIframeAPIReady = () => { previousReady?.(); createPlayer(); };
+      win.onYouTubeIframeAPIReady = () => {
+        previousReady?.();
+        createPlayer();
+      };
     }
-    return () => { cancelled = true; setCommand(null); if (interval) clearInterval(interval); playerRef.current?.destroy?.(); playerRef.current = null; };
+    return () => {
+      cancelled = true;
+      setCommand(null);
+      if (interval) clearInterval(interval);
+      playerRef.current?.destroy?.();
+      playerRef.current = null;
+    };
   }, [videoId]);
-  useEffect(() => { playerRef.current?.setVolume?.(volume * 100); }, [volume]);
-  return <div ref={hostRef} className="youtube-player" aria-label="Official YouTube player" />;
+  useEffect(() => {
+    playerRef.current?.setVolume?.(volume * 100);
+  }, [volume]);
+  return (
+    <div
+      ref={hostRef}
+      className="youtube-player"
+      aria-label="Official YouTube player"
+    />
+  );
 }
 
-const youtubeSearchCache = new Map<string, { expiresAt: number; results: Song[] }>();
+const youtubeSearchCache = new Map<
+  string,
+  { expiresAt: number; results: Song[] }
+>();
 
 async function searchYouTube(query: string, category: string): Promise<Song[]> {
   const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_DATA_API_KEY ?? "";
-  if (!apiKey) throw new Error("YOUTUBE_DATA_API_KEY is not available to the app.");
+  if (!apiKey)
+    throw new Error("YOUTUBE_DATA_API_KEY is not available to the app.");
   const cacheKey = category + ":" + query.trim().toLocaleLowerCase();
   const cached = youtubeSearchCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.results;
-  const type = category === "Artists" ? "channel" : category === "Playlists" || category === "Albums" ? "playlist" : "video";
-  const params = new URLSearchParams({ key: apiKey, part: "snippet", q: category === "Albums" ? query + " album" : query, type, maxResults: "20", regionCode: "IN", relevanceLanguage: "hi", safeSearch: "moderate", order: "relevance" });
+  const type =
+    category === "Artists"
+      ? "channel"
+      : category === "Playlists" || category === "Albums"
+        ? "playlist"
+        : "video";
+  const params = new URLSearchParams({
+    key: apiKey,
+    part: "snippet",
+    q: category === "Albums" ? query + " album" : query,
+    type,
+    maxResults: "20",
+    regionCode: "IN",
+    relevanceLanguage: "hi",
+    safeSearch: "moderate",
+    order: "relevance",
+  });
   if (type === "video") params.set("videoCategoryId", "10");
-  const response = await fetch("https://www.googleapis.com/youtube/v3/search?" + params.toString());
-  if (!response.ok) throw new Error("YouTube search failed (" + response.status + ").");
-  const payload = await response.json() as { items?: Array<{ id?: { videoId?: string; channelId?: string; playlistId?: string }; snippet?: { title?: string; channelTitle?: string; thumbnails?: { high?: { url?: string }; medium?: { url?: string } } } }> };
+  const response = await fetch(
+    "https://www.googleapis.com/youtube/v3/search?" + params.toString(),
+  );
+  if (!response.ok)
+    throw new Error("YouTube search failed (" + response.status + ").");
+  const payload = (await response.json()) as {
+    items?: Array<{
+      id?: { videoId?: string; channelId?: string; playlistId?: string };
+      snippet?: {
+        title?: string;
+        channelTitle?: string;
+        thumbnails?: { high?: { url?: string }; medium?: { url?: string } };
+      };
+    }>;
+  };
   const results = (payload.items ?? []).flatMap((item) => {
     const id = item.id?.videoId ?? item.id?.channelId ?? item.id?.playlistId;
     if (!id || !item.snippet?.title) return [];
-    return [{ title: item.snippet.title, artist: item.snippet.channelTitle ?? "YouTube", cover: item.snippet.thumbnails?.high?.url ?? item.snippet.thumbnails?.medium?.url ?? covers.midnight, youtubeVideoId: id, youtubeKind: type === "video" ? "video" : type === "channel" ? "channel" : "playlist", duration: "YouTube" } satisfies Song];
+    return [
+      {
+        title: item.snippet.title,
+        artist: item.snippet.channelTitle ?? "YouTube",
+        cover:
+          item.snippet.thumbnails?.high?.url ??
+          item.snippet.thumbnails?.medium?.url ??
+          covers.midnight,
+        youtubeVideoId: id,
+        youtubeKind:
+          type === "video"
+            ? "video"
+            : type === "channel"
+              ? "channel"
+              : "playlist",
+        duration: "YouTube",
+      } satisfies Song,
+    ];
   });
-  youtubeSearchCache.set(cacheKey, { expiresAt: Date.now() + 5 * 60 * 1000, results });
+  youtubeSearchCache.set(cacheKey, {
+    expiresAt: Date.now() + 5 * 60 * 1000,
+    results,
+  });
   return results;
 }
 
-function SearchView({ search, setSearch, playSong }: { search: string; setSearch: (v: string) => void; playSong: (song: Song) => void }) {
+function SearchView({
+  search,
+  setSearch,
+  playSong,
+}: {
+  search: string;
+  setSearch: (v: string) => void;
+  playSong: (song: Song) => void;
+}) {
   const [category, setCategory] = useState("Songs");
   const [sort, setSort] = useState("Relevance");
   const [results, setResults] = useState<Song[]>([]);
-  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">(
+    "idle",
+  );
   const [error, setError] = useState<string | null>(null);
   const categories = ["Songs", "Artists", "Albums", "Playlists"];
   useEffect(() => {
     const query = search.trim();
-    if (!query) { setResults([]); setStatus("idle"); setError(null); return; }
+    if (!query) {
+      setResults([]);
+      setStatus("idle");
+      setError(null);
+      return;
+    }
     let cancelled = false;
     const timer = setTimeout(() => {
       setStatus("loading");
       setError(null);
-      void searchYouTube(query, category).then((nextResults) => { if (!cancelled) { setResults(nextResults); setStatus("ready"); } }).catch((reason: unknown) => { if (!cancelled) { setResults([]); setStatus("error"); setError(reason instanceof Error ? reason.message : "YouTube search is unavailable right now."); } });
+      void searchYouTube(query, category)
+        .then((nextResults) => {
+          if (!cancelled) {
+            setResults(nextResults);
+            setStatus("ready");
+          }
+        })
+        .catch((reason: unknown) => {
+          if (!cancelled) {
+            setResults([]);
+            setStatus("error");
+            setError(
+              reason instanceof Error
+                ? reason.message
+                : "YouTube search is unavailable right now.",
+            );
+          }
+        });
     }, 350);
-    return () => { cancelled = true; clearTimeout(timer); };
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [category, search]);
-  const sortedResults = [...results].sort((a, b) => sort === "A-Z" ? a.title.localeCompare(b.title) : 0);
-  return <div className="page search-page"><div className="search-intro"><p className="overline accent-text">YOUTUBE MUSIC SEARCH</p><h1>Find your<br /><em>next favorite.</em></h1><div className="search-input"><SearchIcon size={21} /><input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Hindi, Punjabi, artists, albums..." />{search && <button onClick={() => setSearch("")} aria-label="Clear search"><X size={18} /></button>}<span>⌘ K</span></div></div>{search ? <MusicSection title={'Results for “' + search + '”'} link=""><div className="search-category-tabs">{categories.map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}<label><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option>Relevance</option><option>A-Z</option></select></label></div>{status === "loading" ? <SearchSkeleton /> : status === "error" ? <div className="empty-state"><span className="empty-icon"><Radio size={18} /></span><strong>Search is unavailable</strong><span>{error}</span><button onClick={() => setSearch(search + " ")}>Retry</button></div> : !sortedResults.length ? <div className="empty-state"><span className="empty-icon"><SearchIcon size={18} /></span><strong>No results for “{search}”</strong><span>Try a different spelling or search in another language.</span><button onClick={() => setSearch("")}>Clear search</button></div> : category === "Songs" ? <div className="search-results">{sortedResults.map((song, i) => <div className="result-row" key={song.youtubeVideoId}><span className="result-number">{String(i + 1).padStart(2, "0")}</span><Artwork src={song.cover} className="result-art" /><div><strong>{song.title}</strong><span>{song.artist} · YouTube</span></div><button onClick={() => playSong(song)} aria-label={'Play ' + song.title}><Play size={15} fill="currentColor" /></button><span>{song.duration}</span><MoreHorizontal size={18} /></div>)}</div> : <div className="category-results">{sortedResults.map((song) => <button key={song.youtubeVideoId} onClick={() => song.youtubeKind === "video" ? playSong(song) : undefined}><Artwork src={song.cover} className={category === "Artists" ? "artist-art" : "result-art"} /><span><strong>{song.title}</strong><small>{song.artist} · {category === "Artists" ? "Channel" : category === "Playlists" ? "Playlist" : "Album candidate"}</small></span><ChevronRight size={16} /></button>)}</div>}</MusicSection> : <><MusicSection title="Recent searches" link="Clear"><div className="search-chips"><button onClick={() => setSearch("Arijit Singh")}>Arijit Singh <Clock3 size={14} /></button><button onClick={() => setSearch("Punjabi hits")}>Punjabi hits <Clock3 size={14} /></button><button onClick={() => setSearch("Bollywood")}>Bollywood <Clock3 size={14} /></button></div></MusicSection><MusicSection title="Search safely" link=""><div className="search-guidance"><Radio size={18} /><span>Results come from the official YouTube player. VIBRA never downloads or extracts audio.</span></div></MusicSection><MusicSection title="Popular searches" link=""><div className="trending-grid"><span><b>01</b> Hindi songs</span><span><b>02</b> Bollywood music</span><span><b>03</b> Punjabi hits</span><span><b>04</b> Arijit Singh</span></div></MusicSection></>}</div>;
+  const sortedResults = [...results].sort((a, b) =>
+    sort === "A-Z" ? a.title.localeCompare(b.title) : 0,
+  );
+  return (
+    <div className="page search-page">
+      <div className="search-intro">
+        <p className="overline accent-text">YOUTUBE MUSIC SEARCH</p>
+        <h1>
+          Find your
+          <br />
+          <em>next favorite.</em>
+        </h1>
+        <div className="search-input">
+          <SearchIcon size={21} />
+          <input
+            autoFocus
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search Hindi, Punjabi, artists, albums..."
+          />
+          {search && (
+            <button onClick={() => setSearch("")} aria-label="Clear search">
+              <X size={18} />
+            </button>
+          )}
+          <span>⌘ K</span>
+        </div>
+      </div>
+      {search ? (
+        <MusicSection title={"Results for “" + search + "”"} link="">
+          <div className="search-category-tabs">
+            {categories.map((item) => (
+              <button
+                key={item}
+                className={category === item ? "active" : ""}
+                onClick={() => setCategory(item)}
+              >
+                {item}
+              </button>
+            ))}
+            <label>
+              <span>Sort</span>
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value)}
+              >
+                <option>Relevance</option>
+                <option>A-Z</option>
+              </select>
+            </label>
+          </div>
+          {status === "loading" ? (
+            <SearchSkeleton />
+          ) : status === "error" ? (
+            <div className="empty-state">
+              <span className="empty-icon">
+                <Radio size={18} />
+              </span>
+              <strong>Search is unavailable</strong>
+              <span>{error}</span>
+              <button onClick={() => setSearch(search + " ")}>Retry</button>
+            </div>
+          ) : !sortedResults.length ? (
+            <div className="empty-state">
+              <span className="empty-icon">
+                <SearchIcon size={18} />
+              </span>
+              <strong>No results for “{search}”</strong>
+              <span>
+                Try a different spelling or search in another language.
+              </span>
+              <button onClick={() => setSearch("")}>Clear search</button>
+            </div>
+          ) : category === "Songs" ? (
+            <div className="search-results">
+              {sortedResults.map((song, i) => (
+                <div className="result-row" key={song.youtubeVideoId}>
+                  <span className="result-number">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <Artwork src={song.cover} className="result-art" />
+                  <div>
+                    <strong>{song.title}</strong>
+                    <span>{song.artist} · YouTube</span>
+                  </div>
+                  <button
+                    onClick={() => playSong(song)}
+                    aria-label={"Play " + song.title}
+                  >
+                    <Play size={15} fill="currentColor" />
+                  </button>
+                  <span>{song.duration}</span>
+                  <MoreHorizontal size={18} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="category-results">
+              {sortedResults.map((song) => (
+                <button
+                  key={song.youtubeVideoId}
+                  onClick={() =>
+                    song.youtubeKind === "video" ? playSong(song) : undefined
+                  }
+                >
+                  <Artwork
+                    src={song.cover}
+                    className={
+                      category === "Artists" ? "artist-art" : "result-art"
+                    }
+                  />
+                  <span>
+                    <strong>{song.title}</strong>
+                    <small>
+                      {song.artist} ·{" "}
+                      {category === "Artists"
+                        ? "Channel"
+                        : category === "Playlists"
+                          ? "Playlist"
+                          : "Album candidate"}
+                    </small>
+                  </span>
+                  <ChevronRight size={16} />
+                </button>
+              ))}
+            </div>
+          )}
+        </MusicSection>
+      ) : (
+        <>
+          <MusicSection title="Recent searches" link="Clear">
+            <div className="search-chips">
+              <button onClick={() => setSearch("Arijit Singh")}>
+                Arijit Singh <Clock3 size={14} />
+              </button>
+              <button onClick={() => setSearch("Punjabi hits")}>
+                Punjabi hits <Clock3 size={14} />
+              </button>
+              <button onClick={() => setSearch("Bollywood")}>
+                Bollywood <Clock3 size={14} />
+              </button>
+            </div>
+          </MusicSection>
+          <MusicSection title="Search safely" link="">
+            <div className="search-guidance">
+              <Radio size={18} />
+              <span>
+                Results come from the official YouTube player. VIBRA never
+                downloads or extracts audio.
+              </span>
+            </div>
+          </MusicSection>
+          <MusicSection title="Popular searches" link="">
+            <div className="trending-grid">
+              <span>
+                <b>01</b> Hindi songs
+              </span>
+              <span>
+                <b>02</b> Bollywood music
+              </span>
+              <span>
+                <b>03</b> Punjabi hits
+              </span>
+              <span>
+                <b>04</b> Arijit Singh
+              </span>
+            </div>
+          </MusicSection>
+        </>
+      )}
+    </div>
+  );
 }
 
-function SearchSkeleton() { return <div className="search-skeleton" aria-label="Loading search results"><i /><i /><i /><i /></div>; }
-
-function LibraryView({ liked, setShowPlayer, playSong }: { liked: boolean; setShowPlayer: (v: boolean) => void; playSong: (song: Song) => void }) {
-  return <div className="page library-page"><section className="library-hero"><div className="library-spark"><Heart size={35} fill="currentColor" /></div><div><p className="overline">YOUR COLLECTION</p><h1>Your Library</h1><p>{liked ? "1 liked song" : "0 liked songs"} · 4 playlists · 28 albums</p></div></section><MusicSection title="Your music" link=""><div className="library-grid library-grid-four"><div className="library-card liked-card" onClick={() => { playSong(songs[0]); setShowPlayer(true); }}><div><Heart size={18} fill="currentColor" /><strong>Liked Songs</strong><span>{liked ? "1 song" : "0 songs"}</span></div><PlayButton /></div><div className="library-card library-info-card"><Clock3 size={20} /><strong>Recently Played</strong><span>12 tracks this week</span></div><div className="library-card library-info-card"><Download size={20} /><strong>Downloads</strong><span>Available offline</span></div><div className="library-card library-info-card"><ListMusic size={20} /><strong>Playlists</strong><span>4 playlists</span></div></div></MusicSection><MusicSection title="Playlists" link="See all"><div className="playlist-list library-list-grid"><PlaylistItem title="Late Night Drive" subtitle="VIBRA · 32 songs" cover={covers.coast} /><PlaylistItem title="Soft Focus" subtitle="VIBRA · 48 songs" cover={covers.blue} /><PlaylistItem title="Sunday Morning" subtitle="VIBRA · 24 songs" cover={covers.ocean} /></div></MusicSection><MusicSection title="Albums" link="See all"><div className="horizontal-cards">{songs.slice(0, 4).map((song) => <AlbumCard key={song.title} song={song} onPlay={() => playSong(song)} onOpen={() => { playSong(song); setShowPlayer(true); }} />)}</div></MusicSection><MusicSection title="Artists" link="See all"><div className="artist-row"><Artist name="Maggie Rogers" image={covers.face} /><Artist name="Bonobo" image={covers.ocean} /><Artist name="Lana Del Rey" image={covers.rose} /><Artist name="Jamie xx" image={covers.desert} /></div></MusicSection></div>;
+function SearchSkeleton() {
+  return (
+    <div className="search-skeleton" aria-label="Loading search results">
+      <i />
+      <i />
+      <i />
+      <i />
+    </div>
+  );
 }
 
-function DiscoverView({ playSong }: { playSong: (song: Song) => void }) { return <div className="page discover-page"><div className="discover-heading"><p className="overline accent-text">THE VIBRA EDIT</p><h1>Discover something<br /><em>new.</em></h1><p>Hand-picked sounds from the edges of your taste.</p></div><div className="discover-feature"><Artwork src={covers.desert} /><div><span className="overline">ALBUM OF THE WEEK</span><h2>Blue Hour</h2><p>Jónsi · Ambient / Experimental</p><button className="hero-button" onClick={() => playSong(songs[4])}>Listen now <Play size={14} fill="currentColor" /></button></div></div><MusicSection title="Fresh sounds for you" link="See all"><div className="horizontal-cards">{songs.slice().reverse().map((song) => <AlbumCard key={song.title} song={song} onPlay={() => playSong(song)} onOpen={() => playSong(song)} />)}</div></MusicSection></div>; }
+function LibraryView({
+  liked,
+  setShowPlayer,
+  playSong,
+}: {
+  liked: boolean;
+  setShowPlayer: (v: boolean) => void;
+  playSong: (song: Song) => void;
+}) {
+  return (
+    <div className="page library-page">
+      <section className="library-hero">
+        <div className="library-spark">
+          <Heart size={35} fill="currentColor" />
+        </div>
+        <div>
+          <p className="overline">YOUR COLLECTION</p>
+          <h1>Your Library</h1>
+          <p>
+            {liked ? "1 liked song" : "0 liked songs"} · 4 playlists · 28 albums
+          </p>
+        </div>
+      </section>
+      <MusicSection title="Your music" link="">
+        <div className="library-grid library-grid-four">
+          <div
+            className="library-card liked-card"
+            onClick={() => {
+              playSong(songs[0]);
+              setShowPlayer(true);
+            }}
+          >
+            <div>
+              <Heart size={18} fill="currentColor" />
+              <strong>Liked Songs</strong>
+              <span>{liked ? "1 song" : "0 songs"}</span>
+            </div>
+            <PlayButton />
+          </div>
+          <div className="library-card library-info-card">
+            <Clock3 size={20} />
+            <strong>Recently Played</strong>
+            <span>12 tracks this week</span>
+          </div>
+          <div className="library-card library-info-card">
+            <Download size={20} />
+            <strong>Downloads</strong>
+            <span>Available offline</span>
+          </div>
+          <div className="library-card library-info-card">
+            <ListMusic size={20} />
+            <strong>Playlists</strong>
+            <span>4 playlists</span>
+          </div>
+        </div>
+      </MusicSection>
+      <MusicSection title="Playlists" link="See all">
+        <div className="playlist-list library-list-grid">
+          <PlaylistItem
+            title="Late Night Drive"
+            subtitle="VIBRA · 32 songs"
+            cover={covers.coast}
+          />
+          <PlaylistItem
+            title="Soft Focus"
+            subtitle="VIBRA · 48 songs"
+            cover={covers.blue}
+          />
+          <PlaylistItem
+            title="Sunday Morning"
+            subtitle="VIBRA · 24 songs"
+            cover={covers.ocean}
+          />
+        </div>
+      </MusicSection>
+      <MusicSection title="Albums" link="See all">
+        <div className="horizontal-cards">
+          {songs.slice(0, 4).map((song) => (
+            <AlbumCard
+              key={song.title}
+              song={song}
+              onPlay={() => playSong(song)}
+              onOpen={() => {
+                playSong(song);
+                setShowPlayer(true);
+              }}
+            />
+          ))}
+        </div>
+      </MusicSection>
+      <MusicSection title="Artists" link="See all">
+        <div className="artist-row">
+          <Artist name="Maggie Rogers" image={covers.face} />
+          <Artist name="Bonobo" image={covers.ocean} />
+          <Artist name="Lana Del Rey" image={covers.rose} />
+          <Artist name="Jamie xx" image={covers.desert} />
+        </div>
+      </MusicSection>
+    </div>
+  );
+}
+
+function DiscoverView({ playSong }: { playSong: (song: Song) => void }) {
+  return (
+    <div className="page discover-page">
+      <div className="discover-heading">
+        <p className="overline accent-text">THE VIBRA EDIT</p>
+        <h1>
+          Discover something
+          <br />
+          <em>new.</em>
+        </h1>
+        <p>Hand-picked sounds from the edges of your taste.</p>
+      </div>
+      <div className="discover-feature">
+        <Artwork src={covers.desert} />
+        <div>
+          <span className="overline">ALBUM OF THE WEEK</span>
+          <h2>Blue Hour</h2>
+          <p>Jónsi · Ambient / Experimental</p>
+          <button className="hero-button" onClick={() => playSong(songs[4])}>
+            Listen now <Play size={14} fill="currentColor" />
+          </button>
+        </div>
+      </div>
+      <MusicSection title="Fresh sounds for you" link="See all">
+        <div className="horizontal-cards">
+          {songs
+            .slice()
+            .reverse()
+            .map((song) => (
+              <AlbumCard
+                key={song.title}
+                song={song}
+                onPlay={() => playSong(song)}
+                onOpen={() => playSong(song)}
+              />
+            ))}
+        </div>
+      </MusicSection>
+    </div>
+  );
+}
 
 function ProfileView({ navigate }: { navigate: (label: string) => void }) {
-  return <div className="page profile-page"><section className="profile-hero"><div className="profile-avatar-large">AM</div><div><p className="overline accent-text">VIBRA MEMBER</p><h1>Alex Morgan</h1><p>Listening since 2024 · Free plan</p></div><button className="edit-profile">Edit profile</button></section><div className="profile-grid"><div className="profile-stat"><strong>128</strong><span>liked songs</span></div><div className="profile-stat"><strong>12</strong><span>playlists</span></div><div className="profile-stat"><strong>4.2k</strong><span>minutes played</span></div></div><section className="profile-settings"><div className="section-heading"><h2>Preferences</h2><span>Make VIBRA yours</span></div><button onClick={() => navigate("Settings")}><span><Settings size={18} /><strong>Settings</strong></span><ChevronRight size={17} /></button><button><span><Sparkles size={18} /><strong>Theme</strong></span><small>Dark · VIBRA night</small><ChevronRight size={17} /></button><button><span><Radio size={18} /><strong>Playback</strong></span><small>Gapless · Crossfade off</small><ChevronRight size={17} /></button><button><span><Download size={18} /><strong>Storage & cache</strong></span><small>128 MB used</small><ChevronRight size={17} /></button><button><span><Bell size={18} /><strong>Notifications</strong></span><div className="toggle on"><span /></div></button></section><section className="about-card"><div><span className="overline">VIBRA</span><strong>Music for every moment.</strong><small>Version 1.0.0 · Made with care</small></div><ChevronRight size={17} /></section></div>;
+  return (
+    <div className="page profile-page">
+      <section className="profile-hero">
+        <div className="profile-avatar-large">AM</div>
+        <div>
+          <p className="overline accent-text">VIBRA MEMBER</p>
+          <h1>Alex Morgan</h1>
+          <p>Listening since 2024 · Free plan</p>
+        </div>
+        <button className="edit-profile">Edit profile</button>
+      </section>
+      <div className="profile-grid">
+        <div className="profile-stat">
+          <strong>128</strong>
+          <span>liked songs</span>
+        </div>
+        <div className="profile-stat">
+          <strong>12</strong>
+          <span>playlists</span>
+        </div>
+        <div className="profile-stat">
+          <strong>4.2k</strong>
+          <span>minutes played</span>
+        </div>
+      </div>
+      <section className="profile-settings">
+        <div className="section-heading">
+          <h2>Preferences</h2>
+          <span>Make VIBRA yours</span>
+        </div>
+        <button onClick={() => navigate("Settings")}>
+          <span>
+            <Settings size={18} />
+            <strong>Settings</strong>
+          </span>
+          <ChevronRight size={17} />
+        </button>
+        <button>
+          <span>
+            <Sparkles size={18} />
+            <strong>Theme</strong>
+          </span>
+          <small>Dark · VIBRA night</small>
+          <ChevronRight size={17} />
+        </button>
+        <button>
+          <span>
+            <Radio size={18} />
+            <strong>Playback</strong>
+          </span>
+          <small>Gapless · Crossfade off</small>
+          <ChevronRight size={17} />
+        </button>
+        <button>
+          <span>
+            <Download size={18} />
+            <strong>Storage & cache</strong>
+          </span>
+          <small>128 MB used</small>
+          <ChevronRight size={17} />
+        </button>
+        <button>
+          <span>
+            <Bell size={18} />
+            <strong>Notifications</strong>
+          </span>
+          <div className="toggle on">
+            <span />
+          </div>
+        </button>
+      </section>
+      <section className="about-card">
+        <div>
+          <span className="overline">VIBRA</span>
+          <strong>Music for every moment.</strong>
+          <small>Version 1.0.0 · Made with care</small>
+        </div>
+        <ChevronRight size={17} />
+      </section>
+    </div>
+  );
 }
 
-function SettingsView() { return <div className="page settings-page"><p className="overline accent-text">PREFERENCES</p><h1>Settings</h1><p className="subtle">Make VIBRA feel like yours.</p><div className="settings-list"><div><div><strong>Audio quality</strong><span>High · Wi-Fi & cellular</span></div><ChevronRight size={18} /></div><div><div><strong>Download over cellular</strong><span>Allow downloads when not on Wi-Fi</span></div><div className="toggle on"><span /></div></div><div><div><strong>Notifications</strong><span>New releases, mixes, and recommendations</span></div><div className="toggle on"><span /></div></div><div><div><strong>Crossfade</strong><span>Blend songs together</span></div><span className="setting-value">Off <ChevronRight size={18} /></span></div></div><button className="sign-out">Sign out</button></div>; }
+function SettingsView() {
+  return (
+    <div className="page settings-page">
+      <p className="overline accent-text">PREFERENCES</p>
+      <h1>Settings</h1>
+      <p className="subtle">Make VIBRA feel like yours.</p>
+      <div className="settings-list">
+        <div>
+          <div>
+            <strong>Audio quality</strong>
+            <span>High · Wi-Fi & cellular</span>
+          </div>
+          <ChevronRight size={18} />
+        </div>
+        <div>
+          <div>
+            <strong>Download over cellular</strong>
+            <span>Allow downloads when not on Wi-Fi</span>
+          </div>
+          <div className="toggle on">
+            <span />
+          </div>
+        </div>
+        <div>
+          <div>
+            <strong>Notifications</strong>
+            <span>New releases, mixes, and recommendations</span>
+          </div>
+          <div className="toggle on">
+            <span />
+          </div>
+        </div>
+        <div>
+          <div>
+            <strong>Crossfade</strong>
+            <span>Blend songs together</span>
+          </div>
+          <span className="setting-value">
+            Off <ChevronRight size={18} />
+          </span>
+        </div>
+      </div>
+      <button className="sign-out">Sign out</button>
+    </div>
+  );
+}
