@@ -1241,8 +1241,20 @@ const youtubeSearchCache = new Map<
   string,
   { expiresAt: number; results: Song[] }
 >();
-
 async function searchYouTube(query: string, category: string): Promise<Song[]> {
+  const response = await fetch(
+    `/api/youtube/search?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "YouTube search failed.");
+  }
+
+  return data.results ?? [];
+}
+
   const apiKey =
     process.env.NEXT_PUBLIC_YOUTUBE_DATA_API_KEY ||
     (process.env as any).YOUTUBE_DATA_API_KEY ||
