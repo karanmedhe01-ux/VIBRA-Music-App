@@ -1302,3 +1302,152 @@ async function searchYouTube(
   });
   return results;
 }
+function SearchView({
+  search, setSearch, playSong, addToLibrary,
+}: {
+  search: string;
+  setSearch: (v: string) => void;
+  playSong: (song: Song) => void;
+  addToLibrary: (song: Song) => void;
+}) {
+  const [category, setCategory] = useState("Songs");
+  const [results, setResults] = useState<Song[]>([]);
+  const [status, setStatus] = useState<"idle"|"loading"|"ready"|"error">("idle");
+  const [error, setError] = useState<string | null>(null);
+  const categories = ["Songs","Artists","Albums","Playlists"];
+  useEffect(() => {
+    const query = search.trim();
+    if (!query) { setResults([]); setStatus("idle"); return; }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setStatus("loading");
+      searchYouTube(query, category)
+        .then((res) => { if (!cancelled) { setResults(res); setStatus("ready"); }})
+        .catch((e) => { if (!cancelled) { setResults([]); setStatus("error"); setError(e instanceof Error ? e.message : "Search failed."); }});
+    }, 350);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [category, search]);
+  return (
+    <div className="page search-page">
+      <div className="search-intro">
+        <p className="overline accent-text">YOUTUBE MUSIC SEARCH</p>
+        <h1>Find your<br /><em>next favorite.</em></h1>
+        <div className="search-input">
+          <SearchIcon size={21} />
+          <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search songs, artists..." />
+          {search && <button onClick={() => setSearch("")}><X size={18} /></button>}
+        </div>
+      </div>
+      {search ? (
+        <MusicSection title={`Results for "${search}"`} link="">
+          <div className="search-category-tabs">
+            {categories.map((item) => (
+              <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>
+            ))}
+          </div>
+          {status === "loading" ? (
+            <div className="search-skeleton"><i/><i/><i/><i/></div>
+          ) : status === "error" ? (
+            <div className="empty-state"><strong>Search unavailable</strong><span>{error}</span></div>
+          ) : results.length === 0 ? (
+            <div className="empty-state"><strong>No results</strong><button onClick={() => setSearch("")}>Clear</button></div>
+          ) : (
+            <div className="search-results">
+              {results.map((song, i) => (
+                <div className="result-row" key={song.youtubeVideoId}>
+                  <span className="result-number">{String(i+1).padStart(2,"0")}</span>
+                  <Artwork src={song.cover} className="result-art" />
+                  <div><strong>{song.title}</strong><span>{song.artist}</span></div>
+                  <button onClick={() => playSong(song)}><Play size={15} fill="currentColor" /></button>
+                  <button onClick={() => addToLibrary(song)}><Plus size={15} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </MusicSection>
+      ) : (
+        <MusicSection title="Popular searches" link="">
+          <div className="trending-grid">
+            <span><b>01</b> Hindi songs</span>
+            <span><b>02</b> Bollywood</span>
+            <span><b>03</b> Punjabi hits</span>
+            <span><b>04</b> Arijit Singh</span>
+          </div>
+        </MusicSection>
+      )}
+    </div>
+  );
+}
+
+function LibraryView({ liked, setShowPlayer, playSong, library }: { liked: boolean; setShowPlayer: (v: boolean) => void; playSong: (song: Song) => void; library: Song[]; }) {
+  return (
+    <div className="page library-page">
+      <section className="library-hero">
+        <div className="library-spark"><Heart size={35} fill="currentColor" /></div>
+        <div>
+          <p className="overline">YOUR COLLECTION</p>
+          <h1>Your Library</h1>
+          <p>{library.length} saved songs</p>
+        </div>
+      </section>
+      <MusicSection title="Saved Songs" link="See all">
+        <div className="horizontal-cards">
+          {library.map((song) => (
+            <AlbumCard key={song.youtubeVideoId} song={song} onPlay={() => playSong(song)} onOpen={() => { playSong(song); setShowPlayer(true); }} />
+          ))}
+        </div>
+      </MusicSection>
+    </div>
+  );
+}
+
+function DiscoverView({ playSong }: { playSong: (song: Song) => void }) {
+  return (
+    <div className="page discover-page">
+      <div className="discover-heading">
+        <p className="overline accent-text">THE VIBRA EDIT</p>
+        <h1>Discover something<br /><em>new.</em></h1>
+      </div>
+      <MusicSection title="Fresh sounds" link="See all">
+        <div className="horizontal-cards">
+          {songs.slice().reverse().map((song) => (
+            <AlbumCard key={song.title} song={song} onPlay={() => playSong(song)} onOpen={() => playSong(song)} />
+          ))}
+        </div>
+      </MusicSection>
+    </div>
+  );
+}
+
+function ProfileView({ navigate }: { navigate: (label: string) => void }) {
+  return (
+    <div className="page profile-page">
+      <section className="profile-hero">
+        <div className="profile-avatar-large">V</div>
+        <div>
+          <p className="overline accent-text">VIBRA MEMBER</p>
+          <h1>My Profile</h1>
+        </div>
+      </section>
+      <section className="profile-settings">
+        <button onClick={() => navigate("Settings")}>
+          <span><Settings size={18} /><strong>Settings</strong></span>
+          <ChevronRight size={17} />
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function SettingsView() {
+  return (
+    <div className="page settings-page">
+      <p className="overline accent-text">PREFERENCES</p>
+      <h1>Settings</h1>
+      <div className="settings-list">
+        <div><div><strong>Audio quality</strong><span>High</span></div><ChevronRight size={18} /></div>
+        <div><div><strong>Notifications</strong></div><div className="toggle on"><span /></div></div>
+      </div>
+    </div>
+  );
+}
