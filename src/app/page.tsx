@@ -1143,7 +1143,7 @@ function FullPlayer({
               <Mic2 size={18} /> Official player
             </button>
             <button>
-              <Clock3 size={18} /> Sleep timer
+               <Clock3 size={18} /> {sleepMinutes ? `Sleep: ${sleepMinutes}m` : "Sleep timer"}
             </button>
           </div>
           <label className="player-volume">
