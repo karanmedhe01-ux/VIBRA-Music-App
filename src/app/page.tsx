@@ -59,8 +59,48 @@ const covers = {
     "https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=700&q=85",
 };
 
-const songs: Song[] = [];
-
+const songs: Song[] = [
+  {
+    title: "Tum Hi Ho",
+    artist: "Arijit Singh",
+    cover: covers.midnight,
+    duration: "4:22",
+    youtubeVideoId: "Umqb9KENgmk",
+    youtubeKind: "video",
+  },
+  {
+    title: "Kesariya",
+    artist: "Arijit Singh",
+    cover: covers.rose,
+    duration: "4:28",
+    youtubeVideoId: "BddP6PYo2gs",
+    youtubeKind: "video",
+  },
+  {
+    title: "Raataan Lambiyan",
+    artist: "Jubin Nautiyal",
+    cover: covers.blue,
+    duration: "3:52",
+    youtubeVideoId: "TV2GJrHbU6M",
+    youtubeKind: "video",
+  },
+  {
+    title: "Believer",
+    artist: "Imagine Dragons",
+    cover: covers.gold,
+    duration: "3:24",
+    youtubeVideoId: "W2TE0DjdNqI",
+    youtubeKind: "video",
+  },
+  {
+    title: "Levitating",
+    artist: "Dua Lipa",
+    cover: covers.ocean,
+    duration: "3:23",
+    youtubeVideoId: "TUVcZfQe-Kw",
+    youtubeKind: "video",
+  },
+];
 const navItems = [
   { label: "Home", icon: HomeIcon },
   { label: "Discover", icon: Compass },
