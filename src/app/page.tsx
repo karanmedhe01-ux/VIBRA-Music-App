@@ -1142,7 +1142,25 @@ function FullPlayer({
             <button>
               <Mic2 size={18} /> Official player
             </button>
-            <button>
+            <button
+  onClick={() => {
+    if (sleepTimer) {
+      clearTimeout(sleepTimer);
+      setSleepTimer(null);
+      setSleepMinutes(null);
+      return;
+    }
+    const mins = 30;
+    setSleepMinutes(mins);
+    const timer = setTimeout(() => {
+      setPlaying(false);
+      youtubeCommandRef.current?.("pauseVideo");
+      setSleepTimer(null);
+      setSleepMinutes(null);
+    }, mins * 60 * 1000);
+    setSleepTimer(timer);
+  }}
+>
                <Clock3 size={18} /> {sleepMinutes ? `Sleep: ${sleepMinutes}m` : "Sleep timer"}
             </button>
           </div>
