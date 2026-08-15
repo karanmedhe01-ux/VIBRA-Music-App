@@ -1082,9 +1082,19 @@ function FullPlayer({
             </div>
           </div>
           <div className="player-controls">
-            <button aria-label="Shuffle">
-              <Shuffle size={20} />
-            </button>
+          <button
+  aria-label="Shuffle"
+  onClick={() => {
+    setIsShuffled(!isShuffled);
+    if (!isShuffled) {
+      const shuffled = [...queue].sort(() => Math.random() - 0.5);
+      setQueue(shuffled);
+    }
+  }}
+  style={{ opacity: isShuffled ? 1 : 0.5 }}
+>
+  <Shuffle size={20} />
+</button>
             <button onClick={previousSong} aria-label="Previous track">
               <SkipBack size={25} fill="currentColor" />
             </button>
