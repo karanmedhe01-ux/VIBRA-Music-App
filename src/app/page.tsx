@@ -585,7 +585,13 @@ function HomeView({
     <div className="page home-page">
       <section className="welcome-row">
         <div>
-          <p className="overline">Tuesday, August 12</p>
+<p className="overline">
+  {new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  })}
+</p>
           <h1>
             Good evening, Alex <span>✦</span>
           </h1>
