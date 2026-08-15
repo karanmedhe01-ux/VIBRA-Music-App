@@ -1275,4 +1275,4 @@ function YouTubePlayer({
       aria-label="Official YouTube player"
     />
   );
-  
+}
