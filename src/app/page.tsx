@@ -1276,3 +1276,29 @@ function YouTubePlayer({
     />
   );
 }
+const youtubeSearchCache = new Map<
+  string,
+  { expiresAt: number; results: Song[] }
+>();
+
+async function searchYouTube(
+  query: string,
+  category: string
+): Promise<Song[]> {
+  const cacheKey = category + ":" + query.trim().toLocaleLowerCase();
+  const cached = youtubeSearchCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.results;
+  const response = await fetch(
+    `/api/youtube/search?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`
+  );
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "YouTube search failed.");
+  }
+  const results = data.results ?? [];
+  youtubeSearchCache.set(cacheKey, {
+    expiresAt: Date.now() + 5 * 60 * 1000,
+    results,
+  });
+  return results;
+}
