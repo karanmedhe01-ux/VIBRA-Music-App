@@ -170,6 +170,8 @@ const setLiked = (v: boolean) => {
   const [queueIndex, setQueueIndex] = useState(0);
   const [isShuffled, setIsShuffled] = useState(false);
   const [isRepeating, setIsRepeating] = useState(false);
+  const [sleepTimer, setSleepTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [volume, setVolume] = useState(0.8);
