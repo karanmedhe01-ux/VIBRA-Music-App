@@ -168,6 +168,7 @@ const setLiked = (v: boolean) => {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [queue, setQueue] = useState<Song[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
+  const [isShuffled, setIsShuffled] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [volume, setVolume] = useState(0.8);
