@@ -1115,9 +1115,13 @@ function FullPlayer({
             <button onClick={nextSong} aria-label="Next track">
               <SkipForward size={25} fill="currentColor" />
             </button>
-            <button aria-label="Repeat">
-              <Repeat2 size={20} />
-            </button>
+             <button
+  aria-label="Repeat"
+  onClick={() => setIsRepeating(!isRepeating)}
+  style={{ opacity: isRepeating ? 1 : 0.5 }}
+>
+  <Repeat2 size={20} />
+</button>
           </div>
           <div className="player-actions">
             <button
