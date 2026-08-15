@@ -152,7 +152,16 @@ export default function Home() {
   >(null);
   const [activeNav, setActiveNav] = useState("Home");
   const [playing, setPlaying] = useState(false);
-  const [liked, setLiked] = useState(false);
+   const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set());
+const liked = selectedSong ? likedSongs.has(selectedSong.youtubeVideoId) : false;
+const setLiked = (v: boolean) => {
+  if (!selectedSong) return;
+  setLikedSongs((prev) => {
+    const next = new Set(prev);
+    v ? next.add(selectedSong.youtubeVideoId) : next.delete(selectedSong.youtubeVideoId);
+    return next;
+  });
+};
   const [library, setLibrary] = useState<Song[]>([]);
   const [showPlayer, setShowPlayer] = useState(false);
   const [search, setSearch] = useState("");
