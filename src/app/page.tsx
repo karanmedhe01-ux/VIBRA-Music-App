@@ -163,6 +163,7 @@ const setLiked = (v: boolean) => {
   });
 };
   const [library, setLibrary] = useState<Song[]>([]);
+  const [recentlyPlayed, setRecentlyPlayed] = useState<Song[]>([]);
   const [showPlayer, setShowPlayer] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
