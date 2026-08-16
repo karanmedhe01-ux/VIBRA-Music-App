@@ -404,7 +404,7 @@ const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
             </button>
           </div>
           <div className="profile-row">
-            <div className="avatar">AL</div>
+             <div className="avatar">VU</div>
             <div>
               <strong>VIBRA User</strong>
               <span>VIBRA member</span>
