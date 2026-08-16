@@ -193,7 +193,13 @@ export default function Home() {
   const [activeNav, setActiveNav] = useState("Home");
   const [playing, setPlaying] = useState(false);
    const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set());
-const liked = selectedSong ? likedSongs.has(selectedSong.youtubeVideoId) : false;
+
+  const [library, setLibrary] = useState<Song[]>([]);
+  const [recentlyPlayed, setRecentlyPlayed] = useState<Song[]>([]);
+  const [showPlayer, setShowPlayer] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const liked = selectedSong ? likedSongs.has(selectedSong.youtubeVideoId) : false;
 const setLiked = (v: boolean) => {
   if (!selectedSong) return;
   setLikedSongs((prev) => {
@@ -202,11 +208,6 @@ const setLiked = (v: boolean) => {
     return next;
   });
 };
-  const [library, setLibrary] = useState<Song[]>([]);
-  const [recentlyPlayed, setRecentlyPlayed] = useState<Song[]>([]);
-  const [showPlayer, setShowPlayer] = useState(false);
-  const [search, setSearch] = useState("");
-  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [queue, setQueue] = useState<Song[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
   const [isShuffled, setIsShuffled] = useState(false);
