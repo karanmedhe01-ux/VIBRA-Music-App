@@ -613,7 +613,11 @@ function HomeView({
   })}
 </p>
           <h1>
-            Good evening, Alex <span>✦</span>
+             {new Date().getHours() < 12
+  ? "Good morning"
+  : new Date().getHours() < 17
+  ? "Good afternoon"
+  : "Good evening"} <span>✦</span>
           </h1>
           <p className="subtle">A little music for wherever you are.</p>
         </div>
