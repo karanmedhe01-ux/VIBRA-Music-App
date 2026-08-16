@@ -306,7 +306,21 @@ const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
       return true;
     }
     if (showPlayer) {
-      setShowPlayer(false);
+      const navigate = (label: string) => {
+  if (label === activeNav) {
+    setMenuOpen(false);
+    return;
+  }
+  navigationStackRef.current =
+    label === "Home" ? ["Home"] : [...navigationStackRef.current, label];
+  setActiveNav(label);
+  setMenuOpen(false);
+  window.history.pushState(
+    { vibra: true, screen: label },
+    "",
+    window.location.href,
+  );
+};
       return true;
     }
     if (navigationStackRef.current.length > 1) {
