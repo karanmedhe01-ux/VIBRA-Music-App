@@ -307,21 +307,9 @@ const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
       return true;
     }
     if (showPlayer) {
-      const navigate = (label: string) => {
-  if (label === activeNav) {
-    setMenuOpen(false);
-    return;
-  }
-  navigationStackRef.current =
-    label === "Home" ? ["Home"] : [...navigationStackRef.current, label];
-  setActiveNav(label);
-  setMenuOpen(false);
-  window.history.pushState(
-    { vibra: true, screen: label },
-    "",
-    window.location.href,
-  );
-};
+      setShowPlayer(false);
+      return true;
+    }
       return true;
     }
     if (navigationStackRef.current.length > 1) {
