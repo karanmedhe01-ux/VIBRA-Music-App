@@ -563,6 +563,16 @@ const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
             setLoading={setIsLoading}
             setProgress={setCurrentTime}
             setDuration={setDurationSeconds}
+            isShuffled={isShuffled}
+setIsShuffled={setIsShuffled}
+isRepeating={isRepeating}
+setIsRepeating={setIsRepeating}
+sleepTimer={sleepTimer}
+setSleepTimer={setSleepTimer}
+sleepMinutes={sleepMinutes}
+setSleepMinutes={setSleepMinutes}
+addToLibrary={addToLibrary}
+youtubeCommandRef={youtubeCommandRef}
           />
         )}
       </main>
