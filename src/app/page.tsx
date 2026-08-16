@@ -406,7 +406,7 @@ const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
           <div className="profile-row">
             <div className="avatar">AL</div>
             <div>
-              <strong>Alex Morgan</strong>
+              <strong>VIBRA User</strong>
               <span>VIBRA member</span>
             </div>
             <MoreHorizontal size={18} />
