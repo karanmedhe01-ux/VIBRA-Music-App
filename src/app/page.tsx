@@ -1104,10 +1104,10 @@ function FullPlayer({
             setProgress={setProgress}
             setDuration={setDuration}
             onEnded={nextSong}
-            onError={(message) => {
-              setLoading(false);
-              setPlaying(false);
-            }}
+            onError={(_message) => {
+  setLoading(false);
+  setPlaying(false);
+}}
           />
         </div>
         <div className="player-details">
