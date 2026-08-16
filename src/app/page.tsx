@@ -188,6 +188,12 @@ const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
   const startSong = useCallback(
     (song: Song, autoplay = true) => {
       setSelectedSong(song);
+      setRecentlyPlayed((prev) => {
+  const filtered = prev.filter(
+    (item) => item.youtubeVideoId !== song.youtubeVideoId
+  );
+  return [song, ...filtered].slice(0, 10);
+});
       setQueue((currentQueue) =>
         currentQueue.some((item) => item.youtubeVideoId === song.youtubeVideoId)
           ? currentQueue
