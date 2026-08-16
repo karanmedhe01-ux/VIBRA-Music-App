@@ -1522,13 +1522,44 @@ function ProfileView({ navigate }: { navigate: (label: string) => void }) {
 }
 
 function SettingsView() {
+  const [quality, setQuality] = useState("High");
+  const [notifications, setNotifications] = useState(true);
+  const [crossfade, setCrossfade] = useState(false);
   return (
     <div className="page settings-page">
       <p className="overline accent-text">PREFERENCES</p>
       <h1>Settings</h1>
+      <p className="subtle">Make VIBRA feel like yours.</p>
       <div className="settings-list">
-        <div><div><strong>Audio quality</strong><span>High</span></div><ChevronRight size={18} /></div>
-        <div><div><strong>Notifications</strong></div><div className="toggle on"><span /></div></div>
+        <div>
+          <div>
+            <strong>Audio quality</strong>
+            <span>{quality}</span>
+          </div>
+          <select value={quality} onChange={(e) => setQuality(e.target.value)}>
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+          </select>
+        </div>
+        <div>
+          <div>
+            <strong>Notifications</strong>
+            <span>{notifications ? "On" : "Off"}</span>
+          </div>
+          <div className={`toggle ${notifications ? "on" : ""}`} onClick={() => setNotifications(!notifications)}>
+            <span />
+          </div>
+        </div>
+        <div>
+          <div>
+            <strong>Crossfade</strong>
+            <span>{crossfade ? "On" : "Off"}</span>
+          </div>
+          <div className={`toggle ${crossfade ? "on" : ""}`} onClick={() => setCrossfade(!crossfade)}>
+            <span />
+          </div>
+        </div>
       </div>
     </div>
   );
