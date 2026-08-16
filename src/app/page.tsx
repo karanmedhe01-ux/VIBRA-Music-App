@@ -1144,9 +1144,14 @@ function FullPlayer({
               <Heart size={19} fill={liked ? "currentColor" : "none"} />{" "}
               Favorite
             </button>
-            <button>
-              <Plus size={19} /> Add to playlist
-            </button>
+            <button
+  onClick={() => {
+    addToLibrary(song);
+    alert(`"${song.title}" added to your library!`);
+  }}
+>
+  <Plus size={19} /> Add to playlist
+</button>
             <button
   onClick={() => {
     if (navigator.share) {
