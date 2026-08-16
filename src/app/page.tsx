@@ -432,7 +432,7 @@ const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
               <Bell size={18} />
             </button>
             <div className="top-profile">
-              <div className="avatar avatar-small">AM</div>
+              <div className="avatar avatar-small">VU</div>
               <ChevronDown size={14} />
             </div>
             <button
