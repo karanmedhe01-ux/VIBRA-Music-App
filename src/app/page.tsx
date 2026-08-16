@@ -1147,9 +1147,24 @@ function FullPlayer({
             <button>
               <Plus size={19} /> Add to playlist
             </button>
-            <button>
-              <Share2 size={18} /> Share
-            </button>
+            <button
+  onClick={() => {
+    if (navigator.share) {
+      navigator.share({
+        title: song.title,
+        text: `${song.title} by ${song.artist}`,
+        url: `https://www.youtube.com/watch?v=${song.youtubeVideoId}`,
+      });
+    } else {
+      navigator.clipboard.writeText(
+        `https://www.youtube.com/watch?v=${song.youtubeVideoId}`
+      );
+      alert("Link copied!");
+    }
+  }}
+>
+  <Share2 size={18} /> Share
+</button>
             <button>
               <Mic2 size={18} /> Official player
             </button>
