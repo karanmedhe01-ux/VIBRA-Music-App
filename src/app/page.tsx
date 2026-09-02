@@ -310,8 +310,6 @@ const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
       setShowPlayer(false);
       return true;
     }
-      return true;
-    }
     if (navigationStackRef.current.length > 1) {
       const stack = navigationStackRef.current.slice(0, -1);
       navigationStackRef.current = stack;
