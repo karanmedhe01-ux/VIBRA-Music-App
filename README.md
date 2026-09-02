@@ -33,3 +33,5 @@ The repository includes a build script at `scripts/build-android.sh`. It uses Ja
 - Keep API keys and other secrets out of source control.
 - Do not commit `.env` files containing private credentials.
 - The Android application ID is `com.vibra.music`.
+
+<!-- quality-check-trigger -->
