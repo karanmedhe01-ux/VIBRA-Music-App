@@ -310,8 +310,6 @@ const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
       setShowPlayer(false);
       return true;
     }
-      return true;
-    }
     if (navigationStackRef.current.length > 1) {
       const stack = navigationStackRef.current.slice(0, -1);
       navigationStackRef.current = stack;
@@ -1071,6 +1069,16 @@ function FullPlayer({
   setLoading: (v: boolean) => void;
   setProgress: (v: number) => void;
   setDuration: (v: number) => void;
+  isShuffled: boolean;
+  setIsShuffled: (v: boolean) => void;
+  isRepeating: boolean;
+  setIsRepeating: (v: boolean) => void;
+  sleepTimer: ReturnType<typeof setTimeout> | null;
+  setSleepTimer: (v: ReturnType<typeof setTimeout> | null) => void;
+  sleepMinutes: number | null;
+  setSleepMinutes: (v: number | null) => void;
+  addToLibrary: (song: Song) => void;
+  youtubeCommandRef: React.MutableRefObject<((command: string, args?: unknown[]) => void) | null>;
 }) {
   const progress = durationSeconds
     ? Math.min(100, (currentTime / durationSeconds) * 100)
